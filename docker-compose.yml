@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: detectiondb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  ai-predicter:
+    build: ./ai-predicter
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-predicter/models:/app/models
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        - PRODUCTION=true
+    ports:
+      - "8080:8080"
+    environment:
+      - AI_SERVER_URL=http://ai-predicter:8000
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/detectiondb
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+    depends_on:
+      - ai-predicter
+      - postgres
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

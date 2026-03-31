@@ -1,0 +1,13 @@
+path: ./dataset
+train: images/train
+val: images/val
+
+nc: 7
+names:
+  0: hand-raising
+  1: read
+  2: write
+  3: discuss
+  4: bow-head
+  5: turn-head
+  6: standing
