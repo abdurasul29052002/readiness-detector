@@ -15,15 +15,15 @@ public interface DetectionSessionRepository extends JpaRepository<DetectionSessi
 
     @Query("""
             SELECT new uz.sonic.backend.dto.DailyStatistic(
-                CAST(ds.timestamp AS DATE),
+                cast(ds.timestamp as LocalDate),
                 AVG(ds.attentivePercent),
                 AVG(ds.distractedPercent),
                 COUNT(ds)
             )
             FROM DetectionSession ds
             WHERE ds.timestamp BETWEEN :start AND :end
-            GROUP BY CAST(ds.timestamp AS DATE)
-            ORDER BY CAST(ds.timestamp AS DATE)
+            GROUP BY cast(ds.timestamp as LocalDate)
+            ORDER BY cast(ds.timestamp as LocalDate)
             """)
     List<DailyStatistic> findDailyStatistics(
             @Param("start") LocalDateTime start,

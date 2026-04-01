@@ -12,8 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js automatically reads .env.production during build
-COPY .env .env.production
+# Next.js reads .env.production during build for NEXT_PUBLIC_* vars
+RUN cp -f .env .env.production 2>/dev/null || touch .env.production
 
 ENV NEXT_TELEMETRY_DISABLED=1
 

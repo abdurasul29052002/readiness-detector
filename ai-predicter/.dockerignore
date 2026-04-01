@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.env.example
+*.iml
+.idea/
+.git/
+test_main.py

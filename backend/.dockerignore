@@ -1,0 +1,8 @@
+target/
+.idea/
+*.iml
+.env
+.env.example
+CLAUDE.md
+HELP.md
+.git/
