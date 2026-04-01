@@ -9,7 +9,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import uz.sonic.backend.config.SecurityConfig;
 import uz.sonic.backend.dto.DailyStatistic;
 import uz.sonic.backend.dto.StatisticsResponse;
+import uz.sonic.backend.service.JwtService;
 import uz.sonic.backend.service.StatisticsService;
+import uz.sonic.backend.service.UserService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +32,12 @@ class StatisticsControllerTest {
 
     @MockitoBean
     private StatisticsService statisticsService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserService userService;
 
     @Test
     void dailyStatistics_shouldReturn200ForAdmin() throws Exception {

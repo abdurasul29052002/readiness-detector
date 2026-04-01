@@ -11,8 +11,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import uz.sonic.backend.config.SecurityConfig;
 import uz.sonic.backend.dto.*;
 import uz.sonic.backend.entity.DetectionSession;
+import uz.sonic.backend.service.CameraService;
 import uz.sonic.backend.service.DetectionPersistenceService;
 import uz.sonic.backend.service.DetectionService;
+import uz.sonic.backend.service.JwtService;
+import uz.sonic.backend.service.UserService;
 
 import java.util.List;
 
@@ -36,6 +39,15 @@ class DetectionControllerTest {
     @MockitoBean
     private DetectionPersistenceService detectionPersistenceService;
 
+    @MockitoBean
+    private CameraService cameraService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserService userService;
+
     @Test
     void detect_shouldReturn200WithValidFile() throws Exception {
         DetectionResponse response = new DetectionResponse(
@@ -44,7 +56,7 @@ class DetectionControllerTest {
                 new DetectionSummary(1, 1, 0, 100.0, 0.0)
         );
         when(detectionService.detect(any(byte[].class), anyDouble())).thenReturn(response);
-        when(detectionPersistenceService.saveDetection(any(), anyDouble(), anyString()))
+        when(detectionPersistenceService.saveDetection(any(), anyDouble(), anyString(), any()))
                 .thenReturn(new DetectionSession());
 
         MockMultipartFile file = new MockMultipartFile(

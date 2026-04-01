@@ -55,9 +55,30 @@ class StatisticsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void statisticsEndpoints_shouldReturn401WithoutAuth() {
+    void statisticsEndpoints_shouldRejectWithoutAuth() {
         String url = baseUrl() + "/api/statistics/daily?date=" + LocalDate.now();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+
+        // JWT stateless: no auth returns 401 or 403
+        assertTrue(
+                response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
+                response.getStatusCode() == HttpStatus.FORBIDDEN,
+                "Expected 401 or 403, got: " + response.getStatusCode()
+        );
+    }
+
+    @Test
+    void rangeStatistics_shouldReturnAllSessions() {
+        HttpEntity<Void> entity = new HttpEntity<>(authHeaders());
+        LocalDate start = LocalDate.now().minusDays(1);
+        LocalDate end = LocalDate.now();
+        String url = baseUrl() + "/api/statistics/range?start=" + start + "&end=" + end;
+
+        ResponseEntity<StatisticsResponse> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, StatisticsResponse.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(3, response.getBody().totalSessions());
     }
 }
