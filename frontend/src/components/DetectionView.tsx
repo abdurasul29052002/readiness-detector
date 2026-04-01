@@ -10,7 +10,12 @@ const BOX_COLORS: Record<string, string> = {
   distracted: "#ef4444",
 };
 
-export default function DetectionView() {
+interface DetectionViewProps {
+  cameraId?: number;
+  compact?: boolean;
+}
+
+export default function DetectionView({ cameraId, compact }: DetectionViewProps = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -157,7 +162,7 @@ export default function DetectionView() {
   }, [captureAndDetect, isRunning]);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6" style={{ animation: "fade-in-up 0.5s ease" }}>
+    <div className={compact ? "space-y-4" : "grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6"} style={{ animation: "fade-in-up 0.5s ease" }}>
       {/* Left - Video Panel */}
       <div className="glass rounded-2xl p-5">
         {/* Controls */}
@@ -256,7 +261,7 @@ export default function DetectionView() {
       </div>
 
       {/* Right - Stats */}
-      <StatsPanel data={result} />
+      {!compact && <StatsPanel data={result} />}
     </div>
   );
 }

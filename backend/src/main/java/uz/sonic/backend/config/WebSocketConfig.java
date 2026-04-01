@@ -8,6 +8,7 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 import uz.sonic.backend.websocket.DetectionWebSocketHandler;
+import uz.sonic.backend.websocket.NotificationWebSocketHandler;
 
 @Configuration
 @EnableWebSocket
@@ -15,10 +16,13 @@ import uz.sonic.backend.websocket.DetectionWebSocketHandler;
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final DetectionWebSocketHandler detectionWebSocketHandler;
+    private final NotificationWebSocketHandler notificationWebSocketHandler;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(detectionWebSocketHandler, "/ws/detect")
+                .setAllowedOrigins("*");
+        registry.addHandler(notificationWebSocketHandler, "/ws/notifications")
                 .setAllowedOrigins("*");
     }
 

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uz.sonic.backend.dto.DetectionResponse;
 import uz.sonic.backend.dto.DetectionResult;
+import uz.sonic.backend.entity.Camera;
 import uz.sonic.backend.entity.DetectionDetail;
 import uz.sonic.backend.entity.DetectionSession;
 import uz.sonic.backend.repository.DetectionSessionRepository;
@@ -17,8 +18,13 @@ import java.time.LocalDateTime;
 public class DetectionPersistenceService {
 
     private final DetectionSessionRepository sessionRepository;
+    private final NotificationService notificationService;
 
     public DetectionSession saveDetection(DetectionResponse response, double confidence, String source) {
+        return saveDetection(response, confidence, source, null);
+    }
+
+    public DetectionSession saveDetection(DetectionResponse response, double confidence, String source, Camera camera) {
         DetectionSession session = DetectionSession.builder()
                 .timestamp(LocalDateTime.now())
                 .confidenceThreshold(confidence)
@@ -28,6 +34,7 @@ public class DetectionPersistenceService {
                 .attentivePercent(response.summary().attentivePercent())
                 .distractedPercent(response.summary().distractedPercent())
                 .source(source)
+                .camera(camera)
                 .build();
 
         for (DetectionResult result : response.detections()) {
@@ -47,6 +54,13 @@ public class DetectionPersistenceService {
 
         DetectionSession saved = sessionRepository.save(session);
         log.debug("Detection session saved: id={}, total={}, source={}", saved.getId(), saved.getTotalDetected(), source);
+
+        try {
+            notificationService.checkAndNotify(saved);
+        } catch (Exception e) {
+            log.warn("Notification check failed: {}", e.getMessage());
+        }
+
         return saved;
     }
 }

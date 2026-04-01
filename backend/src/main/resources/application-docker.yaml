@@ -17,3 +17,7 @@ spring:
 admin:
   username: ${ADMIN_USERNAME:admin}
   password: ${ADMIN_PASSWORD:admin123}
+
+jwt:
+  secret: ${JWT_SECRET:bXktZGV2LXNlY3JldC1rZXktdGhhdC1pcy1hdC1sZWFzdC0zMi1ieXRlcy1sb25nLWZvci1obWFjLXNoYTI1Ng==}
+  expiration: ${JWT_EXPIRATION:86400000}

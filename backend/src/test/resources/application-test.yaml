@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -19,5 +19,12 @@ admin:
   username: admin
   password: admin
 
+jwt:
+  secret: bXktdGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtYXQtbGVhc3QtMzItYnl0ZXMtbG9uZy1mb3ItaG1hYy1zaGEyNTY=
+  expiration: 86400000
+
 vaadin:
   launch-browser: false
+
+websocket:
+  default-confidence: 0.5

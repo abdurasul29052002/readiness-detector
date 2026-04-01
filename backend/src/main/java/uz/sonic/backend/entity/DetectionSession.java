@@ -32,6 +32,12 @@ public class DetectionSession {
 
     private String source;
 
+    private String modelVersion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "camera_id")
+    private Camera camera;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DetectionDetail> details = new ArrayList<>();

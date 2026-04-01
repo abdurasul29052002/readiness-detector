@@ -29,4 +29,10 @@ public interface DetectionSessionRepository extends JpaRepository<DetectionSessi
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    @Query("SELECT ds FROM DetectionSession ds LEFT JOIN FETCH ds.details WHERE ds.timestamp BETWEEN :start AND :end ORDER BY ds.timestamp")
+    List<DetectionSession> findByTimestampBetweenWithDetails(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
