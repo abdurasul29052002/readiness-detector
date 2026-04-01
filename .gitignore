@@ -48,6 +48,9 @@ exp/
 *.pt
 !models/best.pt
 weights/
+training/models
+training/dataset
+training/crop_dataset
 
 # YOLO/Ultralytics
 yolov5/
