@@ -1,7 +1,7 @@
 import type { DetectionResponse, Camera, NotificationItem, NotificationConfig, VideoJob, VideoJobDetail, StatisticsResponse, ModelListResponse } from "@/types/detection";
 import type { LoginResponse, UserProfile, CreateUserRequest, UpdateUserRequest } from "@/types/auth";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // --- Token management ---
 

@@ -67,10 +67,20 @@ Desktop.ini
 # VS Code
 .vscode/
 
-# Environment files
+# Environment files (real values — never commit)
 .env
 .env.local
 .env.*.local
+backend/.env
+frontend/.env
+frontend/.env.development
+ai-predicter/.env
+
+# Allow .env.example templates (committed to git)
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+!ai-predicter/.env.example
 
 # Logs
 *.log

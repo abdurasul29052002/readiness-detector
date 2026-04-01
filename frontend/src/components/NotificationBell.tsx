@@ -6,7 +6,12 @@ import { getNotifications, markAllNotificationsRead, markNotificationRead } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/lib/useWebSocket";
 
-const WS_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/^http/, "ws") + "/ws/notifications";
+function getWsUrl() {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL + "/ws/notifications";
+  if (typeof window === "undefined") return "ws://localhost:8080/ws/notifications";
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/ws/notifications`;
+}
 
 export default function NotificationBell() {
   const { isAuthenticated } = useAuth();
@@ -26,7 +31,7 @@ export default function NotificationBell() {
   }, []);
 
   const { connect, disconnect } = useWebSocket({
-    url: WS_URL,
+    url: getWsUrl(),
     onMessage: handleWsMessage,
     autoReconnect: true,
   });

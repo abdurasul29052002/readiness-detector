@@ -1,10 +1,8 @@
 services:
   postgres:
     image: postgres:17
-    environment:
-      POSTGRES_DB: detectiondb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -15,6 +13,8 @@ services:
 
   ai-predicter:
     build: ./ai-predicter
+    env_file:
+      - ./ai-predicter/.env
     ports:
       - "8000:8000"
     volumes:
@@ -28,20 +28,27 @@ services:
       context: ./backend
       args:
         - PRODUCTION=true
+    env_file:
+      - .env
+      - ./backend/.env
     ports:
       - "8080:8080"
-    environment:
-      - AI_SERVER_URL=http://ai-predicter:8000
-      - SPRING_PROFILES_ACTIVE=docker
-      - DATABASE_URL=jdbc:postgresql://postgres:5432/detectiondb
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=postgres
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      - JWT_SECRET=${JWT_SECRET:-bXktZGV2LXNlY3JldC1rZXktdGhhdC1pcy1hdC1sZWFzdC0zMi1ieXRlcy1sb25nLWZvci1obWFjLXNoYTI1Ng==}
     depends_on:
       - ai-predicter
       - postgres
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
     networks:
       - app-network
     restart: unless-stopped
