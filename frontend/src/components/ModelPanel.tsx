@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ModelListResponse } from "@/types/detection";
 import { listModels, switchModel } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,10 +10,22 @@ export default function ModelPanel() {
   const [data, setData] = useState<ModelListResponse | null>(null);
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     listModels().then(setData).catch(() => {});
   }, []);
+
+  // Tashqariga bosilganda dropdown yopilsin
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   const handleSwitch = async (version: string) => {
     if (!isAuthenticated) return;
@@ -21,6 +33,7 @@ export default function ModelPanel() {
     try {
       await switchModel(version);
       setData(await listModels());
+      setOpen(false);
     } catch {
     } finally {
       setSwitching(false);
@@ -32,7 +45,7 @@ export default function ModelPanel() {
   const active = data.models.find((m) => m.version === data.active_version);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={panelRef}>
       <button onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs font-semibold text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
