@@ -7,16 +7,16 @@ interface Props {
 }
 
 const CLASS_CONFIG: Record<string, { label: string; icon: string }> = {
-  "hand-raising": { label: "Qo'l ko'tarish", icon: "&#9995;" },
-  read:           { label: "O'qish",          icon: "&#128214;" },
-  write:          { label: "Yozish",          icon: "&#9997;" },
-  discuss:        { label: "Suhbatlashish",   icon: "&#128172;" },
-  "bow-head":     { label: "Bosh egish",      icon: "&#128532;" },
-  "turn-head":    { label: "Boshni burish",   icon: "&#128064;" },
-  standing:       { label: "O'rnidan turish",  icon: "&#128694;" },
+  "bow-head":     { label: "Bosh egish",       icon: "&#128532;" },
+  focus:          { label: "Diqqatli o'tirish", icon: "&#128161;" },
+  "hand-raising": { label: "Qo'l ko'tarish",   icon: "&#9995;" },
+  read:           { label: "O'qish",            icon: "&#128214;" },
+  standing:       { label: "O'rnidan turish",   icon: "&#128694;" },
+  "turn-head":    { label: "Boshni burish",     icon: "&#128064;" },
+  write:          { label: "Yozish",            icon: "&#9997;" },
 };
 
-const ATTENTIVE = new Set(["hand-raising", "read", "write"]);
+const ATTENTIVE = new Set(["focus", "hand-raising", "read", "write"]);
 
 export default function StatsPanel({ data }: Props) {
   if (!data) {

@@ -33,37 +33,22 @@ MODELS_DIR = Path(__file__).resolve().parent / "models"
 METADATA_FILE = MODELS_DIR / "metadata.json"
 
 CLASS_NAMES = {
-    0: "hand-raising",
-    1: "read",
-    2: "write",
-    3: "discuss",
-    4: "bow-head",
+    0: "bow-head",
+    1: "focus",
+    2: "hand-raising",
+    3: "read",
+    4: "standing",
     5: "turn-head",
-    6: "standing",
-}
-
-# ResNet50 klass tartibi (ImageFolder alifbo bo'yicha)
-RESNET_CLASS_NAMES = [
-    "bow-head", "discuss", "hand-raising", "read",
-    "standing", "turn-head", "write",
-]
-
-# ResNet50 index -> API class_id mapping
-RESNET_TO_API = {
-    0: 4,  # bow-head -> 4
-    1: 3,  # discuss -> 3
-    2: 0,  # hand-raising -> 0
-    3: 1,  # read -> 1
-    4: 6,  # standing -> 6
-    5: 5,  # turn-head -> 5
-    6: 2,  # write -> 2
+    6: "write",
 }
 
 # Diqqatli (attentive) va chalg'igan (distracted) guruhlari
-ATTENTIVE_CLASSES = {0, 1, 2}
-DISTRACTED_CLASSES = {3, 4, 5, 6}
+ATTENTIVE_CLASSES = {1, 2, 3, 6}   # focus, hand-raising, read, write
+DISTRACTED_CLASSES = {0, 4, 5}      # bow-head, standing, turn-head
 
-# ResNet50 uchun inference transform
+# ResNet50 klass tartibi = API klass tartibi (ikkalasi ham alifbo bo'yicha)
+RESNET_NUM_CLASSES = 7
+
 RESNET_TRANSFORM = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -192,8 +177,8 @@ def run_resnet50_classification(pil_image: Image.Image, confidence: float) -> di
         outputs = model(input_tensor)
         probs = torch.softmax(outputs, dim=1)[0]
 
-    resnet_cls_id = int(probs.argmax())
-    conf = float(probs[resnet_cls_id])
+    cls_id = int(probs.argmax())
+    conf = float(probs[cls_id])
 
     if conf < confidence:
         return {
@@ -203,12 +188,11 @@ def run_resnet50_classification(pil_image: Image.Image, confidence: float) -> di
             "group": "unknown",
         }
 
-    api_cls_id = RESNET_TO_API[resnet_cls_id]
-    cls_name = CLASS_NAMES.get(api_cls_id, "unknown")
-    group = "attentive" if api_cls_id in ATTENTIVE_CLASSES else "distracted"
+    cls_name = CLASS_NAMES.get(cls_id, "unknown")
+    group = "attentive" if cls_id in ATTENTIVE_CLASSES else "distracted"
 
     return {
-        "class_id": api_cls_id,
+        "class_id": cls_id,
         "class_name": cls_name,
         "confidence": round(conf, 3),
         "group": group,

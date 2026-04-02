@@ -35,7 +35,7 @@ LR = 0.001
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 CLASS_NAMES = [
-    "bow-head", "discuss", "hand-raising", "read",
+    "bow-head", "focus", "hand-raising", "read",
     "standing", "turn-head", "write",
 ]
 
