@@ -401,7 +401,13 @@ def train():
     log(f"  Best Val Accuracy: {best_acc:.2f}%")
     log("=" * 70)
 
-    # Best modelni yuklash va yakuniy validation
+    # ── Best modelni DARHOL models/ ga ko'chirish (xavfsizlik) ──
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    dest = MODELS_DIR / "best_resnet50.pt"
+    shutil.copy2(RUNS_DIR / "best.pt", dest)
+    log(f"\n  Model saved to: {dest}")
+
+    # ── Best modelni yuklash va yakuniy validation ──
     log("\n  Yakuniy validation (best.pt) ...")
     best_state = torch.load(RUNS_DIR / "best.pt", map_location=DEVICE, weights_only=True)
     model.load_state_dict(best_state)
@@ -411,8 +417,10 @@ def train():
     class_correct = [0] * NUM_CLASSES
     class_total = [0] * NUM_CLASSES
 
+    val_bar = tqdm(val_loader, desc="  Final validation",
+                   bar_format="{l_bar}{bar:30}{r_bar}", leave=True, colour="green")
     with torch.no_grad():
-        for images, labels in val_loader:
+        for images, labels in val_bar:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = model(images)
             _, predicted = outputs.max(1)
@@ -426,26 +434,16 @@ def train():
 
     final_acc = 100.0 * sum(class_correct) / sum(class_total)
 
-    # ── Confusion Matrix ──
-    log("\n  Grafiklar chizilmoqda...")
-    plot_confusion_matrix(all_labels, all_preds, RUNS_DIR, normalize=False)
-    plot_confusion_matrix(all_labels, all_preds, RUNS_DIR, normalize=True)
-
-    # ── Training Curves ──
-    plot_training_curves(history, RUNS_DIR)
-
-    # ── Per-Class Accuracy ──
+    # ── val_results.json (grafiklardan OLDIN saqlanadi) ──
     class_accs = {}
     for ci, cname in enumerate(CLASS_NAMES):
         if class_total[ci] > 0:
             class_accs[cname] = {
-                "accuracy": 100.0 * class_correct[ci] / class_total[ci],
+                "accuracy": round(100.0 * class_correct[ci] / class_total[ci], 2),
                 "correct": class_correct[ci],
                 "total": class_total[ci],
             }
-    plot_per_class_accuracy(class_accs, RUNS_DIR)
 
-    # ── val_results.json ──
     val_results = {
         "model": "ResNet50",
         "epochs_trained": TOTAL_EPOCHS,
@@ -483,11 +481,16 @@ training_time: {total_time}
     (RUNS_DIR / "args.yaml").write_text(args_yaml)
     log(f"  Saved: args.yaml")
 
-    # ── Best modelni models/ ga ko'chirish ──
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    dest = MODELS_DIR / "best_resnet50.pt"
-    shutil.copy2(RUNS_DIR / "best.pt", dest)
-    log(f"\n  Model saved to: {dest}")
+    # ── Grafiklar (try/except — crash bo'lsa ham natijalar saqlanib qoladi) ──
+    log("\n  Grafiklar chizilmoqda...")
+    try:
+        plot_confusion_matrix(all_labels, all_preds, RUNS_DIR, normalize=False)
+        plot_confusion_matrix(all_labels, all_preds, RUNS_DIR, normalize=True)
+        plot_training_curves(history, RUNS_DIR)
+        plot_per_class_accuracy(class_accs, RUNS_DIR)
+    except Exception as e:
+        log(f"  WARNING: Grafik chizishda xato: {e}")
+        log(f"  Model va natijalar saqlanib qoldi!")
 
     # ── Yakuniy hisobot ──
     log("\n" + "=" * 70)
