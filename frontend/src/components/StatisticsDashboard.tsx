@@ -61,7 +61,7 @@ export default function StatisticsDashboard() {
         {([["daily", "Kunlik"], ["weekly", "Haftalik"], ["range", "Oraliq"]] as const).map(([m, label]) => (
           <button key={m} onClick={() => setMode(m)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              mode === m ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "glass text-zinc-500 hover:text-zinc-300"
+              mode === m ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "glass text-zinc-400 hover:text-zinc-300"
             }`}>
             {label}
           </button>
@@ -72,7 +72,7 @@ export default function StatisticsDashboard() {
       <div className="flex gap-4 items-end mb-6 flex-wrap">
         {mode === "daily" && (
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Sana</label>
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Sana</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
           </div>
@@ -113,19 +113,19 @@ export default function StatisticsDashboard() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Sessiyalar</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Sessiyalar</p>
               <p className="text-2xl font-bold">{data.total_sessions}</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Diqqatli</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Diqqatli</p>
               <p className="text-2xl font-bold text-emerald-400">{data.overall_avg_attentive.toFixed(1)}%</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Chalg&apos;igan</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Chalg&apos;igan</p>
               <p className="text-2xl font-bold text-red-400">{data.overall_avg_distracted.toFixed(1)}%</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Davr</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Davr</p>
               <p className="text-sm font-semibold text-zinc-400">{data.period_start} — {data.period_end}</p>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function StatisticsDashboard() {
                   })}
                 </svg>
               </div>
-              <div className="flex gap-4 mt-3 text-xs text-zinc-500">
+              <div className="flex gap-4 mt-3 text-xs text-zinc-400">
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500/80" /> Diqqatli</span>
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500/80" /> Chalg&apos;igan</span>
               </div>
@@ -191,10 +191,10 @@ export default function StatisticsDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Sana</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Sessiyalar</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Diqqatli</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Chalg&apos;igan</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sana</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sessiyalar</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Diqqatli</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Chalg&apos;igan</th>
                   </tr>
                 </thead>
                 <tbody>

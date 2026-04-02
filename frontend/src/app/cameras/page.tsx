@@ -88,7 +88,7 @@ export default function CamerasPage() {
           }`} onClick={() => setSelectedCamera(cam.id === selectedCamera ? null : cam.id)}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-sm">{cam.name}</h3>
-              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-400" : "text-zinc-600"}`}>
+              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-400" : "text-zinc-400"}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${cam.active ? "bg-emerald-400" : "bg-zinc-600"}`} />
                 {cam.active ? "Faol" : "Nofaol"}
               </span>

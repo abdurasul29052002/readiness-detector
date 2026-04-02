@@ -281,7 +281,7 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
             </button>
           )}
 
-          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer transition-all text-zinc-800">
+          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer transition-all text-zinc-300">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
@@ -344,13 +344,13 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
           {!isRunning && !uploadedSrc && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-600">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500">
                   <path d="m15 10-4 4V6l-4 4" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="12" r="10"/>
                 </svg>
               </div>
-              <p className="text-sm font-medium text-zinc-600">Kamerani yoqing yoki rasm yuklang</p>
-              <p className="text-xs text-zinc-700">Real-time o&#39;quvchi xatti-harakatini aniqlash</p>
+              <p className="text-sm font-medium text-zinc-400">Kamerani yoqing yoki rasm yuklang</p>
+              <p className="text-xs text-zinc-500 mt-1">Real-time o&#39;quvchi xatti-harakatini aniqlash</p>
             </div>
           )}
         </div>

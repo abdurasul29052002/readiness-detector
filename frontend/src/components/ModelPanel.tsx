@@ -77,7 +77,7 @@ export default function ModelPanel() {
                       ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 cursor-default"
                       : isAuthenticated
                         ? "text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer"
-                        : "text-zinc-600 cursor-not-allowed"
+                        : "text-zinc-500 cursor-not-allowed"
                     }
                     ${isLoading ? "opacity-50" : ""}
                     ${!!switching && !isActive ? "disabled:opacity-40 disabled:cursor-wait" : ""}

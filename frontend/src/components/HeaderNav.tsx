@@ -32,7 +32,7 @@ export default function HeaderNav() {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 active
                   ? "bg-white/10 text-white"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
               }`}
             >
               {item.label}

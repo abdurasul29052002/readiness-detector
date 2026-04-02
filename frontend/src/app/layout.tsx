@@ -37,7 +37,7 @@ export default function RootLayout({
                   <h1 className="text-[17px] font-bold text-gradient tracking-tight">
                     Student Behavior Detection
                   </h1>
-                  <p className="text-[11px] text-zinc-500 tracking-wide">
+                  <p className="text-[11px] text-zinc-400 tracking-wide">
                     YOLOv8 &middot; Real-time Monitoring
                   </p>
                 </div>

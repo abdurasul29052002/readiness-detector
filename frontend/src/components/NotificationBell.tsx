@@ -107,7 +107,7 @@ export default function NotificationBell() {
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-zinc-600">Bildirishnomalar yo&apos;q</p>
+                <p className="px-4 py-6 text-center text-xs text-zinc-400">Bildirishnomalar yo&apos;q</p>
               ) : (
                 notifications.slice(0, 20).map((n) => (
                   <div
@@ -123,7 +123,7 @@ export default function NotificationBell() {
                       }`} />
                       <div>
                         <p className="text-zinc-300">{n.message}</p>
-                        <p className="text-zinc-600 mt-1">{new Date(n.created_at).toLocaleString("uz")}</p>
+                        <p className="text-zinc-400 mt-1">{new Date(n.created_at).toLocaleString("uz")}</p>
                       </div>
                     </div>
                   </div>

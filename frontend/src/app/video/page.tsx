@@ -105,7 +105,7 @@ export default function VideoPage() {
         {/* Jobs List */}
         <div className="glass rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-white/5">
-            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Ishlar tarixi</span>
+            <span className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Ishlar tarixi</span>
           </div>
           {jobs.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-zinc-600">Hali video yuklanmagan</p>
@@ -128,7 +128,7 @@ export default function VideoPage() {
                   </span>
                 </div>
                 {job.status === "COMPLETED" && (
-                  <div className="flex gap-4 mt-1 text-[10px] text-zinc-500">
+                  <div className="flex gap-4 mt-1 text-[10px] text-zinc-600">
                     <span>Diqqatli: <span className="text-emerald-400">{job.overall_attentive_percent.toFixed(1)}%</span></span>
                     <span>Chalg&apos;igan: <span className="text-red-400">{job.overall_distracted_percent.toFixed(1)}%</span></span>
                   </div>

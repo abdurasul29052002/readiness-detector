@@ -43,7 +43,7 @@ public class DetectionService {
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
 
         // AI predicter ga yuborish
-        String url = aiServerUrl + "/predict?confidence=" + confidence;
+        String url = aiServerUrl + "/classify?confidence=" + confidence;
         ResponseEntity<DetectionResponse> response = restTemplate.exchange(
                 url, HttpMethod.POST, request, DetectionResponse.class
         );
