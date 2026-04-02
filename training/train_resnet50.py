@@ -9,6 +9,7 @@ Ishlatish:
 """
 
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -17,13 +18,17 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
 
+
+def log(msg: str):
+    print(msg, flush=True)
+
 TRAINING_DIR = Path(__file__).resolve().parent
 DATASET_DIR = TRAINING_DIR / "balanced_dataset"
 MODELS_DIR = TRAINING_DIR / "models"
 RUNS_DIR = TRAINING_DIR / "runs" / "resnet50"
 
 NUM_CLASSES = 7
-TOTAL_EPOCHS = 35
+TOTAL_EPOCHS = 5
 BATCH_SIZE = 64
 IMAGE_SIZE = 224
 LR = 0.001
@@ -83,9 +88,9 @@ def format_time(seconds):
 
 
 def train():
-    print(f"Device: {DEVICE}")
-    print(f"Dataset: {DATASET_DIR}")
-    print(f"Epochs: {TOTAL_EPOCHS}, Batch: {BATCH_SIZE}, LR: {LR}")
+    log(f"Device: {DEVICE}")
+    log(f"Dataset: {DATASET_DIR}")
+    log(f"Epochs: {TOTAL_EPOCHS}, Batch: {BATCH_SIZE}, LR: {LR}")
 
     # Transforms
     train_transform, val_transform = get_transforms()
@@ -94,15 +99,15 @@ def train():
     train_dataset = datasets.ImageFolder(DATASET_DIR / "train", transform=train_transform)
     val_dataset = datasets.ImageFolder(DATASET_DIR / "val", transform=val_transform)
 
-    print(f"\nTrain: {len(train_dataset)} rasm")
-    print(f"Val: {len(val_dataset)} rasm")
-    print(f"Klasslar: {train_dataset.classes}")
+    log(f"\nTrain: {len(train_dataset)} rasm")
+    log(f"Val: {len(val_dataset)} rasm")
+    log(f"Klasslar: {train_dataset.classes}")
 
     # Class weights
     class_weights = calculate_class_weights(train_dataset).to(DEVICE)
-    print(f"\nClass weights:")
+    log(f"\nClass weights:")
     for name, w in zip(train_dataset.classes, class_weights):
-        print(f"  {name:15s}: {w:.4f}")
+        log(f"  {name:15s}: {w:.4f}")
 
     # DataLoaders
     train_loader = DataLoader(
@@ -117,7 +122,7 @@ def train():
     # Model
     model = create_model().to(DEVICE)
     total_params = sum(p.numel() for p in model.parameters())
-    print(f"\nModel: ResNet50 ({total_params:,} params)")
+    log(f"\nModel: ResNet50 ({total_params:,} params)")
 
     # Loss, Optimizer, Scheduler
     criterion = nn.CrossEntropyLoss(weight=class_weights)
@@ -127,12 +132,17 @@ def train():
     # Runs directory
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # results.csv — YOLOv8 formatiga o'xshash
+    results_csv = RUNS_DIR / "results.csv"
+    with open(results_csv, "w") as f:
+        f.write("epoch,time,train/loss,metrics/accuracy_top1,val/loss,lr\n")
+
     best_acc = 0.0
     start_time = time.time()
 
-    print("\n" + "=" * 70)
-    print(f"  RESNET50 TRAINING BOSHLANDI")
-    print("=" * 70)
+    log("\n" + "=" * 70)
+    log(f"  RESNET50 TRAINING BOSHLANDI")
+    log("=" * 70)
 
     for epoch in range(1, TOTAL_EPOCHS + 1):
         epoch_start = time.time()
@@ -158,7 +168,7 @@ def train():
             correct += predicted.eq(labels).sum().item()
 
             if (batch_idx + 1) % 500 == 0:
-                print(f"  Epoch {epoch}/{TOTAL_EPOCHS} | Batch {batch_idx+1}/{len(train_loader)} | "
+                log(f"  Epoch {epoch}/{TOTAL_EPOCHS} | Batch {batch_idx+1}/{len(train_loader)} | "
                       f"Loss: {running_loss/(batch_idx+1):.4f} | Acc: {100.*correct/total:.1f}%")
 
         train_loss = running_loss / len(train_loader)
@@ -171,6 +181,8 @@ def train():
         val_loss = 0.0
         val_correct = 0
         val_total = 0
+        class_correct = [0] * NUM_CLASSES
+        class_total = [0] * NUM_CLASSES
 
         with torch.no_grad():
             for images, labels in val_loader:
@@ -182,6 +194,12 @@ def train():
                 _, predicted = outputs.max(1)
                 val_total += labels.size(0)
                 val_correct += predicted.eq(labels).sum().item()
+
+                for i in range(labels.size(0)):
+                    lbl = labels[i].item()
+                    class_total[lbl] += 1
+                    if predicted[i] == lbl:
+                        class_correct[lbl] += 1
 
         val_loss /= len(val_loader)
         val_acc = 100. * val_correct / val_total
@@ -209,20 +227,30 @@ def train():
         # Har doim oxirgi modelni saqlash
         torch.save(model.state_dict(), RUNS_DIR / "last.pt")
 
-        print(f"\n  [{bar}] {epoch}/{TOTAL_EPOCHS} ({pct*100:.0f}%)")
-        print(f"  Epoch: {format_time(epoch_time)} | O'tgan: {format_time(elapsed)} | Qolgan: ~{format_time(remaining)}")
-        print(f"  Train -> Loss: {train_loss:.4f} | Acc: {train_acc:.2f}%")
-        print(f"  Val   -> Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%{marker}")
-        print(f"  Best Val Acc: {best_acc:.2f}% | LR: {scheduler.get_last_lr()[0]:.6f}")
-        print("-" * 70)
+        log(f"\n  [{bar}] {epoch}/{TOTAL_EPOCHS} ({pct*100:.0f}%)")
+        log(f"  Epoch: {format_time(epoch_time)} | O'tgan: {format_time(elapsed)} | Qolgan: ~{format_time(remaining)}")
+        log(f"  Train -> Loss: {train_loss:.4f} | Acc: {train_acc:.2f}%")
+        log(f"  Val   -> Loss: {val_loss:.4f} | Acc: {val_acc:.2f}%{marker}")
+        log(f"  Best Val Acc: {best_acc:.2f}% | LR: {scheduler.get_last_lr()[0]:.6f}")
+        log(f"  Per-class accuracy:")
+        for ci, cname in enumerate(CLASS_NAMES):
+            if class_total[ci] > 0:
+                c_acc = 100. * class_correct[ci] / class_total[ci]
+                log(f"    {cname:15s}: {c_acc:.1f}% ({class_correct[ci]}/{class_total[ci]})")
+        log("-" * 70)
+
+        # results.csv ga yozish
+        current_lr = scheduler.get_last_lr()[0]
+        with open(results_csv, "a") as f:
+            f.write(f"{epoch},{elapsed:.2f},{train_loss:.5f},{val_acc/100:.5f},{val_loss:.5f},{current_lr:.7f}\n")
 
     # Yakuniy
     total_time = format_time(time.time() - start_time)
-    print("\n" + "=" * 70)
-    print(f"  TRAINING TUGADI!")
-    print(f"  Jami vaqt: {total_time}")
-    print(f"  Best Val Accuracy: {best_acc:.2f}%")
-    print("=" * 70)
+    log("\n" + "=" * 70)
+    log(f"  TRAINING TUGADI!")
+    log(f"  Jami vaqt: {total_time}")
+    log(f"  Best Val Accuracy: {best_acc:.2f}%")
+    log("=" * 70)
 
     # Best modelni models/ ga ko'chirish
     best_pt = RUNS_DIR / "best.pt"
@@ -230,7 +258,7 @@ def train():
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         dest = MODELS_DIR / "best_resnet50.pt"
         shutil.copy2(best_pt, dest)
-        print(f"\nModel saved to: {dest}")
+        log(f"\nModel saved to: {dest}")
 
 
 if __name__ == "__main__":
