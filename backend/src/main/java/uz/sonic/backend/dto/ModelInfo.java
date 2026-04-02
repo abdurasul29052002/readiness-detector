@@ -8,5 +8,6 @@ public record ModelInfo(
         boolean loaded,
         @JsonProperty("training_date") String trainingDate,
         Double accuracy,
-        String description
+        String description,
+        String task
 ) {}
