@@ -137,6 +137,7 @@ export interface ModelInfo {
   training_date: string | null;
   accuracy: number | null;
   description: string | null;
+  task: string | null;
 }
 
 export interface ModelListResponse {
