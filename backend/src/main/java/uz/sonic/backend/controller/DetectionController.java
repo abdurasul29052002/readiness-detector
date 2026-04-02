@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import uz.sonic.backend.dto.BatchClassifyResponse;
 import uz.sonic.backend.dto.DetectionResponse;
 import uz.sonic.backend.entity.Camera;
 import uz.sonic.backend.service.CameraService;
@@ -12,6 +13,7 @@ import uz.sonic.backend.service.DetectionPersistenceService;
 import uz.sonic.backend.service.DetectionService;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,6 +40,26 @@ public class DetectionController {
         Camera camera = cameraId != null ? cameraService.getCamera(cameraId) : null;
         detectionPersistenceService.saveDetection(response, confidence, "REST", camera);
         log.info("REST detection: confidence={}, total={}", confidence, response.summary().total());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/classify/batch")
+    public ResponseEntity<BatchClassifyResponse> classifyBatch(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "confidence", defaultValue = "0.5") double confidence
+    ) throws IOException {
+        List<byte[]> crops = files.stream()
+                .map(f -> {
+                    try {
+                        return f.getBytes();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
+
+        BatchClassifyResponse response = detectionService.classifyBatch(crops, confidence);
+        log.info("Batch classify: {} crops, attentive={}%", crops.size(), response.summary().attentivePercent());
         return ResponseEntity.ok(response);
     }
 

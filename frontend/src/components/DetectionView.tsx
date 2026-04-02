@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DetectionResponse, DetectionResult } from "@/types/detection";
-import { detect } from "@/lib/api";
+import { DetectionResponse, FaceBBox, ClassificationResult } from "@/types/detection";
+import { classifyBatch, detect } from "@/lib/api";
+import { useFaceDetection } from "@/lib/useFaceDetection";
 import StatsPanel from "./StatsPanel";
 
 const BOX_COLORS: Record<string, string> = {
@@ -28,100 +29,128 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
   const [error, setError] = useState<string | null>(null);
   const [uploadedSrc, setUploadedSrc] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
+  const [faceCount, setFaceCount] = useState(0);
 
-  const drawDetections = useCallback((detections: DetectionResult[], width: number, height: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const { init: initFaceDetector, detectFaces, cropFaces, destroy: destroyFaceDetector, ready: faceReady } = useFaceDetection();
 
-    canvas.width = width;
-    canvas.height = height;
-    ctx.clearRect(0, 0, width, height);
+  // Yuzlarni topib, classify qilish va bbox chizish
+  const drawResults = useCallback(
+    (faces: FaceBBox[], classifications: ClassificationResult[], width: number, height: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    for (const det of detections) {
-      const color = BOX_COLORS[det.group] || "#6366f1";
-      const { x1, y1, x2, y2 } = det.bbox;
-      const w = x2 - x1;
-      const h = y2 - y1;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.clearRect(0, 0, width, height);
 
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
+      faces.forEach((face, i) => {
+        const cls = classifications[i];
+        if (!cls) return;
 
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(x1, y1, w, h, 4);
-      ctx.stroke();
+        const color = BOX_COLORS[cls.group] || "#6366f1";
 
-      ctx.shadowBlur = 0;
+        // Padding bilan bbox (cropFaces dagi 0.4 padding ga mos)
+        const padding = 0.4;
+        const padW = face.width * padding;
+        const padH = face.height * padding;
+        const x1 = Math.max(0, face.x - padW);
+        const y1 = Math.max(0, face.y - padH);
+        const bw = face.width + padW * 2;
+        const bh = face.height + padH * 2;
 
-      const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
-      ctx.font = "600 12px Inter, sans-serif";
-      const textW = ctx.measureText(label).width + 12;
-      const labelH = 22;
-      const labelY = y1 - labelH - 2;
+        // Glow
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
 
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.roundRect(x1, labelY < 0 ? y1 : labelY, textW, labelH, [4, 4, labelY < 0 ? 0 : 4, labelY < 0 ? 0 : 4]);
-      ctx.fill();
+        // Box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x1, y1, bw, bh, 4);
+        ctx.stroke();
 
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, x1 + 6, (labelY < 0 ? y1 + 15 : labelY + 15));
-    }
-  }, []);
+        ctx.shadowBlur = 0;
 
-  const captureAndDetect = useCallback(async () => {
+        // Label
+        const label = `${cls.class_name} ${(cls.confidence * 100).toFixed(0)}%`;
+        ctx.font = "600 12px Inter, sans-serif";
+        const textW = ctx.measureText(label).width + 12;
+        const labelH = 22;
+        const labelY = y1 - labelH - 2;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x1, labelY < 0 ? y1 : labelY, textW, labelH, [4, 4, labelY < 0 ? 0 : 4, labelY < 0 ? 0 : 4]);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff";
+        ctx.fillText(label, x1 + 6, (labelY < 0 ? y1 + 15 : labelY + 15));
+      });
+    },
+    []
+  );
+
+  // Classification pipeline: face detect -> crop -> classify -> draw
+  const captureAndClassify = useCallback(async () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
 
-    const offscreen = document.createElement("canvas");
-    offscreen.width = video.videoWidth;
-    offscreen.height = video.videoHeight;
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) return;
+    // 1. Yuzlarni topish (MediaPipe)
+    const faces = detectFaces(video, performance.now());
+    setFaceCount(faces.length);
 
-    ctx.drawImage(video, 0, 0);
-    const base64 = offscreen.toDataURL("image/jpeg", 0.85).split(",")[1];
+    if (faces.length === 0) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      setResult({
+        detections: [],
+        summary: { total: 0, attentive: 0, distracted: 0, attentive_percent: 0, distracted_percent: 0 },
+      });
+      return;
+    }
+
+    // 2. Croplarni tayyorlash
+    const crops = await cropFaces(video, faces);
 
     try {
       setDetecting(true);
-      const res = await detect(base64, confidence);
-      setResult(res);
+
+      // 3. Serverga yuborish (batch)
+      const res = await classifyBatch(crops, confidence);
+
+      // 4. DetectionResponse formatiga o'tkazish (StatsPanel uchun)
+      const detections = res.results.map((cls, i) => ({
+        class_id: cls.class_id,
+        class_name: cls.class_name,
+        confidence: cls.confidence,
+        group: cls.group,
+        bbox: {
+          x1: faces[i].x,
+          y1: faces[i].y,
+          x2: faces[i].x + faces[i].width,
+          y2: faces[i].y + faces[i].height,
+        },
+      }));
+
+      setResult({ detections, summary: res.summary });
       setError(null);
-      drawDetections(res.detections, video.videoWidth, video.videoHeight);
+
+      // 5. Bbox chizish
+      drawResults(faces, res.results, video.videoWidth, video.videoHeight);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Server bilan aloqa xatosi");
     } finally {
       setDetecting(false);
     }
-  }, [confidence, drawDetections]);
+  }, [confidence, detectFaces, cropFaces, drawResults]);
 
-  const startCamera = async () => {
-    try {
-      setUploadedSrc(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: "environment" },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      setIsRunning(true);
-      setError(null);
-      intervalRef.current = setInterval(captureAndDetect, 1000);
-    } catch {
-      setError("Kamerani ochib bo'lmadi");
-    }
-  };
-
-  const stopCamera = () => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    setIsRunning(false);
-    const canvas = canvasRef.current;
-    if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
+  // Rasm yuklash uchun eski detect funksiyasi (to'liq rasmni serverga yuborish)
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -139,7 +168,42 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
         setResult(res);
         setError(null);
         const img = new Image();
-        img.onload = () => drawDetections(res.detections, img.width, img.height);
+        img.onload = () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, img.width, img.height);
+
+          for (const det of res.detections) {
+            const color = BOX_COLORS[det.group] || "#6366f1";
+            const { x1, y1, x2, y2 } = det.bbox;
+            const w = x2 - x1;
+            const h = y2 - y1;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x1, y1, w, h, 4);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
+            ctx.font = "600 12px Inter, sans-serif";
+            const textW = ctx.measureText(label).width + 12;
+            const labelH = 22;
+            const labelY = y1 - labelH - 2;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.roundRect(x1, labelY < 0 ? y1 : labelY, textW, labelH, [4, 4, labelY < 0 ? 0 : 4, labelY < 0 ? 0 : 4]);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.fillText(label, x1 + 6, (labelY < 0 ? y1 + 15 : labelY + 15));
+          }
+        };
         img.src = dataUrl;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Xatolik");
@@ -150,16 +214,48 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
     reader.readAsDataURL(file);
   };
 
+  const startCamera = async () => {
+    try {
+      setUploadedSrc(null);
+      setError(null);
+
+      // MediaPipe ni yuklash
+      await initFaceDetector();
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: "environment" },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setIsRunning(true);
+      intervalRef.current = setInterval(captureAndClassify, 1000);
+    } catch {
+      setError("Kamerani ochib bo'lmadi");
+    }
+  };
+
+  const stopCamera = () => {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setIsRunning(false);
+    setFaceCount(0);
+    const canvas = canvasRef.current;
+    if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
   useEffect(() => {
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      destroyFaceDetector();
+    };
   }, []);
 
   useEffect(() => {
     if (isRunning && intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(captureAndDetect, 1000);
+      intervalRef.current = setInterval(captureAndClassify, 1000);
     }
-  }, [captureAndDetect, isRunning]);
+  }, [captureAndClassify, isRunning]);
 
   return (
     <div className={compact ? "space-y-4" : "grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6"} style={{ animation: "fade-in-up 0.5s ease" }}>
@@ -192,6 +288,16 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
             Rasm yuklash
             <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
           </label>
+
+          {/* Face count badge */}
+          {isRunning && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-xs font-semibold text-zinc-400">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/>
+              </svg>
+              {faceCount} yuz
+            </div>
+          )}
 
           {/* Confidence */}
           <div className="flex items-center gap-3 ml-auto px-4 py-2 rounded-xl glass">

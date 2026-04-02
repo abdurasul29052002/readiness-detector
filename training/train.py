@@ -104,7 +104,7 @@ class TrainingProgress:
 
 def train():
     # Eski natijalarni tozalash
-    runs_dir = TRAINING_DIR / "runs" / "student-behavior"
+    runs_dir = TRAINING_DIR / "runs" / "yolov8-detect"
     if runs_dir.exists():
         shutil.rmtree(runs_dir)
         print(f"Eski natijalar o'chirildi: {runs_dir}")
@@ -129,7 +129,7 @@ def train():
         device=0,
         workers=4,
         project=str(TRAINING_DIR / "runs"),
-        name="student-behavior",
+        name="yolov8-detect",
         exist_ok=True,
         # Augmentation
         hsv_h=0.015,
@@ -142,7 +142,7 @@ def train():
     )
 
     # best.pt ni models/ ga ko'chirish
-    best_pt = TRAINING_DIR / "runs" / "student-behavior" / "weights" / "best.pt"
+    best_pt = TRAINING_DIR / "runs" / "yolov8-detect" / "weights" / "best.pt"
     if best_pt.exists():
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         dest = MODELS_DIR / "best.pt"

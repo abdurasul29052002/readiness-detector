@@ -1,4 +1,4 @@
-import type { DetectionResponse, Camera, NotificationItem, NotificationConfig, VideoJob, VideoJobDetail, StatisticsResponse, ModelListResponse } from "@/types/detection";
+import type { DetectionResponse, BatchClassifyResponse, Camera, NotificationItem, NotificationConfig, VideoJob, VideoJobDetail, StatisticsResponse, ModelListResponse } from "@/types/detection";
 import type { LoginResponse, UserProfile, CreateUserRequest, UpdateUserRequest } from "@/types/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -100,6 +100,26 @@ export async function detect(
   formData.append("confidence", confidence.toString());
 
   const res = await fetch(`${API_BASE}/api/detect`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Server xatosi: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function classifyBatch(
+  crops: Blob[],
+  confidence: number
+): Promise<BatchClassifyResponse> {
+  const formData = new FormData();
+  crops.forEach((blob, i) => formData.append("files", blob, `crop_${i}.jpg`));
+  formData.append("confidence", confidence.toString());
+
+  const res = await fetch(`${API_BASE}/api/classify/batch`, {
     method: "POST",
     body: formData,
   });

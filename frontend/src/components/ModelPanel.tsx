@@ -50,12 +50,13 @@ export default function ModelPanel() {
             <div key={m.version} className="px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold flex items-center gap-2">
+                  <p className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                     {m.version}
                     {m.version === data.active_version && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400">Faol</span>
                     )}
                   </p>
+                  {m.description && <p className="text-[10px] text-zinc-400">{m.description}</p>}
                   {m.accuracy && <p className="text-[10px] text-zinc-500">Aniqlik: {(m.accuracy * 100).toFixed(1)}%</p>}
                   {m.training_date && <p className="text-[10px] text-zinc-600">{m.training_date}</p>}
                 </div>

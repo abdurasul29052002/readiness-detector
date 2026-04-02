@@ -26,6 +26,27 @@ export interface DetectionResponse {
   summary: DetectionSummary;
 }
 
+// Classification (individual student)
+export interface ClassificationResult {
+  class_id: number;
+  class_name: string;
+  confidence: number;
+  group: "attentive" | "distracted";
+}
+
+export interface BatchClassifyResponse {
+  results: ClassificationResult[];
+  summary: DetectionSummary;
+}
+
+// Face detection (frontend-side)
+export interface FaceBBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // Camera
 export interface Camera {
   id: number;
