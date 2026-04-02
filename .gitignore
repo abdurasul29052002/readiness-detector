@@ -51,6 +51,7 @@ weights/
 training/models
 training/dataset
 training/crop_dataset
+training/balanced_dataset
 
 # YOLO/Ultralytics
 yolov5/
