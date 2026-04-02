@@ -51,14 +51,15 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
 
         const color = BOX_COLORS[cls.group] || "#6366f1";
 
-        // Padding bilan bbox (cropFaces dagi 0.4 padding ga mos)
-        const padding = 0.4;
-        const padW = face.width * padding;
-        const padH = face.height * padding;
-        const x1 = Math.max(0, face.x - padW);
-        const y1 = Math.max(0, face.y - padH);
-        const bw = face.width + padW * 2;
-        const bh = face.height + padH * 2;
+        // Asimmetrik padding — cropFaces bilan mos
+        const padLeft = face.width * 0.5;
+        const padRight = face.width * 0.5;
+        const padTop = face.height * 0.3;
+        const padBottom = face.height * 1.5;
+        const x1 = Math.max(0, face.x - padLeft);
+        const y1 = Math.max(0, face.y - padTop);
+        const bw = face.width + padLeft + padRight;
+        const bh = face.height + padTop + padBottom;
 
         // Glow
         ctx.shadowColor = color;
