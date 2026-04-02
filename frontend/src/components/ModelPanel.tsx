@@ -70,12 +70,14 @@ export default function ModelPanel() {
               return (
                 <button
                   key={m.version}
-                  onClick={() => !isActive && handleSwitch(m.version)}
-                  disabled={!!switching || isActive}
+                  onClick={() => !isActive && isAuthenticated && handleSwitch(m.version)}
+                  disabled={!!switching || isActive || !isAuthenticated}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                     ${isActive
                       ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 cursor-default"
-                      : "text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer"
+                      : isAuthenticated
+                        ? "text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer"
+                        : "text-zinc-600 cursor-not-allowed"
                     }
                     ${isLoading ? "opacity-50" : ""}
                     ${!!switching && !isActive ? "disabled:opacity-40 disabled:cursor-wait" : ""}
