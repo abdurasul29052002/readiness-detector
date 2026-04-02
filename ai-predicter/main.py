@@ -1,6 +1,11 @@
 """
 FastAPI AI server — individual o'quvchi rasmlarini classification qilish.
 
+3 xil model qo'llab-quvvatlanadi:
+  - YOLOv8 detect  (best.pt)
+  - YOLOv8 classify (best_cls.pt)
+  - ResNet50 PyTorch (best_resnet50.pt)
+
 Endpoints:
   POST /classify       — bitta crop rasmni classification qiladi
   POST /classify/batch — bir nechta crop rasmlarni batch classification qiladi
@@ -15,10 +20,13 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
+import torch.nn as nn
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+from torchvision import models, transforms
 from ultralytics import YOLO
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"
@@ -34,9 +42,35 @@ CLASS_NAMES = {
     6: "standing",
 }
 
+# ResNet50 klass tartibi (ImageFolder alifbo bo'yicha)
+RESNET_CLASS_NAMES = [
+    "bow-head", "discuss", "hand-raising", "read",
+    "standing", "turn-head", "write",
+]
+
+# ResNet50 index -> API class_id mapping
+RESNET_TO_API = {
+    0: 4,  # bow-head -> 4
+    1: 3,  # discuss -> 3
+    2: 0,  # hand-raising -> 0
+    3: 1,  # read -> 1
+    4: 6,  # standing -> 6
+    5: 5,  # turn-head -> 5
+    6: 2,  # write -> 2
+}
+
 # Diqqatli (attentive) va chalg'igan (distracted) guruhlari
 ATTENTIVE_CLASSES = {0, 1, 2}
 DISTRACTED_CLASSES = {3, 4, 5, 6}
+
+# ResNet50 uchun inference transform
+RESNET_TRANSFORM = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 app = FastAPI(title="Student Behavior Classification API")
 
@@ -50,8 +84,8 @@ app.add_middleware(
 # Model registry
 models_registry: dict[str, dict] = {}
 active_model_version: str | None = None
-model: YOLO | None = None
-model_task: str | None = None  # "classify" yoki "detect"
+model = None  # YOLO yoki nn.Module
+model_task: str | None = None  # "classify", "detect", "resnet50"
 
 
 def load_metadata() -> dict:
@@ -67,9 +101,29 @@ def save_metadata():
     METADATA_FILE.write_text(json.dumps(data, indent=2, default=str))
 
 
-def _detect_model_task(yolo_model: YOLO) -> str:
-    """Model tipini aniqlash: 'classify' yoki 'detect'."""
-    return yolo_model.task or "detect"
+def _detect_model_type(path: Path) -> str:
+    """Model tipini aniqlash: fayl nomiga va formatiga qarab."""
+    name = path.stem.lower()
+    if "resnet" in name:
+        return "resnet50"
+    # YOLO model ekanligini tekshirish
+    try:
+        yolo_model = YOLO(str(path))
+        task = yolo_model.task or "detect"
+        return task  # "classify" yoki "detect"
+    except Exception:
+        return "unknown"
+
+
+def _load_resnet50(path: Path) -> nn.Module:
+    """ResNet50 modelni yuklash."""
+    resnet = models.resnet50()
+    resnet.fc = nn.Linear(resnet.fc.in_features, 7)
+    state = torch.load(str(path), map_location=DEVICE, weights_only=True)
+    resnet.load_state_dict(state)
+    resnet.to(DEVICE)
+    resnet.eval()
+    return resnet
 
 
 def _activate_model(version: str):
@@ -77,13 +131,22 @@ def _activate_model(version: str):
     global model, active_model_version, model_task
 
     entry = models_registry[version]
+
     if entry["model"] is None:
-        entry["model"] = YOLO(str(entry["path"]))
+        path = entry["path"]
+        detected_type = entry["metadata"].get("task") or _detect_model_type(path)
+        entry["metadata"]["task"] = detected_type
+
+        if detected_type == "resnet50":
+            entry["model"] = _load_resnet50(path)
+        else:
+            entry["model"] = YOLO(str(path))
+            detected_type = entry["model"].task or "detect"
+            entry["metadata"]["task"] = detected_type
 
     model = entry["model"]
-    model_task = _detect_model_task(model)
+    model_task = entry["metadata"]["task"]
     active_model_version = version
-    entry["metadata"]["task"] = model_task
     print(f"Model activated: {version} (task={model_task})")
 
 
@@ -94,6 +157,12 @@ def load_models():
     for pt_file in sorted(MODELS_DIR.glob("*.pt")):
         version = pt_file.stem
         meta = metadata.get(version, {})
+
+        # Fayl nomidan model tipini oldindan aniqlash (lazy load uchun)
+        task_hint = meta.get("task")
+        if not task_hint and "resnet" in version.lower():
+            task_hint = "resnet50"
+
         models_registry[version] = {
             "path": pt_file,
             "model": None,
@@ -103,7 +172,7 @@ def load_models():
                 "accuracy": meta.get("accuracy"),
                 "description": meta.get("description"),
                 "filename": pt_file.name,
-                "task": meta.get("task"),
+                "task": task_hint,
             },
         }
 
@@ -115,8 +184,39 @@ def load_models():
         print("WARNING: No models found in models/ directory")
 
 
+def run_resnet50_classification(pil_image: Image.Image, confidence: float) -> dict:
+    """ResNet50 bilan bitta rasmni classify qilish."""
+    input_tensor = RESNET_TRANSFORM(pil_image).unsqueeze(0).to(DEVICE)
+
+    with torch.no_grad():
+        outputs = model(input_tensor)
+        probs = torch.softmax(outputs, dim=1)[0]
+
+    resnet_cls_id = int(probs.argmax())
+    conf = float(probs[resnet_cls_id])
+
+    if conf < confidence:
+        return {
+            "class_id": -1,
+            "class_name": "unknown",
+            "confidence": round(conf, 3),
+            "group": "unknown",
+        }
+
+    api_cls_id = RESNET_TO_API[resnet_cls_id]
+    cls_name = CLASS_NAMES.get(api_cls_id, "unknown")
+    group = "attentive" if api_cls_id in ATTENTIVE_CLASSES else "distracted"
+
+    return {
+        "class_id": api_cls_id,
+        "class_name": cls_name,
+        "confidence": round(conf, 3),
+        "group": group,
+    }
+
+
 def run_classification(img_array, confidence: float) -> dict:
-    """Bitta crop rasmni classification qiladi."""
+    """YOLOv8 bilan bitta crop rasmni classification qiladi."""
     results = model.predict(img_array, conf=confidence, verbose=False)
     result = results[0]
 
@@ -184,11 +284,14 @@ async def classify_single(
 
     image_bytes = await file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img_array = np.array(image)
 
-    if model_task == "classify":
+    if model_task == "resnet50":
+        return run_resnet50_classification(image, confidence)
+    elif model_task == "classify":
+        img_array = np.array(image)
         return run_classification(img_array, confidence)
     else:
+        img_array = np.array(image)
         detections = run_detection(img_array, confidence)
         return {"detections": detections, "summary": make_summary(detections)}
 
@@ -206,12 +309,14 @@ async def classify_batch(
     for file in files:
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        img_array = np.array(image)
 
-        if model_task == "classify":
+        if model_task == "resnet50":
+            results.append(run_resnet50_classification(image, confidence))
+        elif model_task == "classify":
+            img_array = np.array(image)
             results.append(run_classification(img_array, confidence))
         else:
-            # Detection da har bir rasmdan bir nechta natija chiqishi mumkin
+            img_array = np.array(image)
             detections = run_detection(img_array, confidence)
             results.extend(detections)
 
@@ -235,7 +340,7 @@ def health():
 # --- Model Versioning ---
 
 @app.get("/models")
-def list_models():
+def list_models_endpoint():
     return {
         "active_version": active_model_version,
         "models": [
@@ -246,6 +351,7 @@ def list_models():
                 "training_date": info["metadata"].get("training_date"),
                 "accuracy": info["metadata"].get("accuracy"),
                 "description": info["metadata"].get("description"),
+                "task": info["metadata"].get("task"),
             }
             for ver, info in models_registry.items()
         ],
@@ -273,6 +379,8 @@ async def upload_model(
     content = await file.read()
     dest.write_bytes(content)
 
+    task_hint = "resnet50" if "resnet" in version.lower() else None
+
     models_registry[version] = {
         "path": dest,
         "model": None,
@@ -282,6 +390,7 @@ async def upload_model(
             "accuracy": accuracy,
             "description": description,
             "filename": f"{version}.pt",
+            "task": task_hint,
         },
     }
     save_metadata()
