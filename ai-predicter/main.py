@@ -1,12 +1,8 @@
 """
-FastAPI AI server — individual o'quvchi rasmlarini classification qilish.
-
-3 xil model qo'llab-quvvatlanadi:
-  - YOLOv8 detect  (best.pt)
-  - YOLOv8 classify (best_cls.pt)
-  - ResNet50 PyTorch (best_resnet50.pt)
+FastAPI AI server — o'quvchilarni aniqlash va classification qilish.
 
 Endpoints:
+  POST /detect         — to'liq kadr: yuz detect + classify + bbox qaytaradi
   POST /classify       — bitta crop rasmni classification qiladi
   POST /classify/batch — bir nechta crop rasmlarni batch classification qiladi
   GET  /health         — server holati
@@ -26,6 +22,8 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+import cv2
+import urllib.request
 from torchvision import models, transforms
 from ultralytics import YOLO
 
@@ -137,6 +135,7 @@ def _activate_model(version: str):
 
 @app.on_event("startup")
 def load_models():
+    _init_face_detector()
     metadata = load_metadata()
 
     for pt_file in sorted(MODELS_DIR.glob("*.pt")):
@@ -161,8 +160,11 @@ def load_models():
             },
         }
 
-    # Default: best_cls, agar yo'q bo'lsa birinchi topilgan model
-    default_version = "best_cls" if "best_cls" in models_registry else next(iter(models_registry), None)
+    # Default: best_resnet50, agar yo'q bo'lsa best_cls, keyin birinchi topilgan model
+    default_version = next(
+        (v for v in ("best_resnet50", "best_cls") if v in models_registry),
+        next(iter(models_registry), None),
+    )
     if default_version:
         _activate_model(default_version)
     else:
@@ -255,6 +257,98 @@ def make_summary(results: list) -> dict:
         "attentive_percent": round(attentive_count / total * 100, 1) if total > 0 else 0,
         "distracted_percent": round(distracted_count / total * 100, 1) if total > 0 else 0,
     }
+
+
+# ── Face detection (OpenCV YuNet) ──
+
+YUNET_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+YUNET_PATH = MODELS_DIR / "yunet.onnx"
+face_detector: cv2.FaceDetectorYN | None = None
+
+
+def _init_face_detector():
+    """YuNet modelni yuklab olish va detector yaratish."""
+    global face_detector
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    if not YUNET_PATH.exists():
+        print(f"YuNet model yuklanmoqda: {YUNET_URL}")
+        urllib.request.urlretrieve(YUNET_URL, str(YUNET_PATH))
+        print(f"YuNet model saqlandi: {YUNET_PATH}")
+    face_detector = cv2.FaceDetectorYN.create(str(YUNET_PATH), "", (0, 0))
+    face_detector.setScoreThreshold(0.5)
+    print("YuNet face detector tayyor")
+
+
+# Crop padding koeffitsientlari (yuz o'lchamiga nisbatan)
+PAD_LEFT = 0.5
+PAD_RIGHT = 0.5
+PAD_TOP = 0.3
+PAD_BOTTOM = 1.5  # pastga ko'proq — yelka, qo'l, parta ko'rinishi uchun
+
+
+def detect_and_classify(pil_image: Image.Image, confidence: float) -> dict:
+    """To'liq kadrdan yuzlarni topib, har birini classify qilish."""
+    if face_detector is None:
+        return {"detections": [], "summary": make_summary([])}
+
+    img_array = np.array(pil_image)
+    h, w = img_array.shape[:2]
+
+    # YuNet RGB emas, BGR kutadi
+    bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+    face_detector.setInputSize((w, h))
+    _, faces = face_detector.detect(bgr)
+
+    if faces is None or len(faces) == 0:
+        return {"detections": [], "summary": make_summary([])}
+
+    detections = []
+    for face in faces:
+        # YuNet format: [x, y, w, h, ..., score]
+        fx1, fy1, fw, fh = int(face[0]), int(face[1]), int(face[2]), int(face[3])
+
+        # Asimmetrik padding — tanani ham olish uchun
+        cx1 = max(0, fx1 - int(fw * PAD_LEFT))
+        cy1 = max(0, fy1 - int(fh * PAD_TOP))
+        cx2 = min(w, fx1 + fw + int(fw * PAD_RIGHT))
+        cy2 = min(h, fy1 + fh + int(fh * PAD_BOTTOM))
+
+        crop = pil_image.crop((cx1, cy1, cx2, cy2))
+
+        # Classify
+        if model_task == "resnet50":
+            cls_result = run_resnet50_classification(crop, confidence)
+        elif model_task == "classify":
+            cls_result = run_classification(np.array(crop), confidence)
+        else:
+            cls_result = run_classification(np.array(crop), confidence)
+
+        if cls_result["class_id"] == -1:
+            continue
+
+        cls_result["bbox"] = {
+            "x1": round(cx1, 1),
+            "y1": round(cy1, 1),
+            "x2": round(cx2, 1),
+            "y2": round(cy2, 1),
+        }
+        detections.append(cls_result)
+
+    return {"detections": detections, "summary": make_summary(detections)}
+
+
+@app.post("/detect")
+async def detect_full_frame(
+    file: UploadFile = File(...),
+    confidence: float = 0.5,
+):
+    """To'liq kadrni qabul qilib, yuzlarni topib, classify qiladi."""
+    if model is None:
+        raise HTTPException(503, "Model not loaded")
+
+    image_bytes = await file.read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    return detect_and_classify(image, confidence)
 
 
 @app.post("/classify")
