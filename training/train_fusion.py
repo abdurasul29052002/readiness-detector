@@ -54,7 +54,7 @@ POSE_CACHE_DIR = TRAINING_DIR / "pose_cache"
 POSE_MODEL_PATH = TRAINING_DIR / "pose_landmarker_lite.task"
 
 NUM_CLASSES = 7
-TOTAL_EPOCHS = 35
+TOTAL_EPOCHS = 6
 BATCH_SIZE = 64
 IMAGE_SIZE = 224
 LR = 0.001
@@ -234,7 +234,7 @@ def get_transforms():
 
 def class_weights(dataset) -> torch.Tensor:
     counts = [0] * NUM_CLASSES
-    for _, _, lbl in dataset.samples:
+    for _, lbl in dataset.samples:
         counts[lbl] += 1
     total = sum(counts)
     w = [total / (NUM_CLASSES * c) if c > 0 else 1.0 for c in counts]
