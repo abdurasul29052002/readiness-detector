@@ -27,11 +27,18 @@ import urllib.request
 from torchvision import models, transforms
 from ultralytics import YOLO
 
+import mediapipe as mp
+from mediapipe.tasks import python as mp_tasks
+from mediapipe.tasks.python import vision as mp_vision
+
+from activations import build_activation, replace_activations
+
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 METADATA_FILE = MODELS_DIR / "metadata.json"
 
+# training-v2 alifbo tartibi — ImageFolder shu tartibda sinflarni indekslagan
 CLASS_NAMES = {
-    0: "bow-head",
+    0: "discuss",
     1: "focus",
     2: "hand-raising",
     3: "read",
@@ -41,19 +48,128 @@ CLASS_NAMES = {
 }
 
 # Diqqatli (attentive) va chalg'igan (distracted) guruhlari
-ATTENTIVE_CLASSES = {1, 2, 3, 6}   # focus, hand-raising, read, write
-DISTRACTED_CLASSES = {0, 4, 5}      # bow-head, standing, turn-head
+ATTENTIVE_CLASSES = {0, 1, 2, 3, 6}  # discuss, focus, hand-raising, read, write
+DISTRACTED_CLASSES = {4, 5}           # standing, turn-head
+
+# Fayl nomidan aktivatsiya turini aniqlash
+_ACTIVATION_MAP = {
+    "lswish": "lswish",
+    "mish": "mish",
+    "silu": "silu",
+    "swish": "silu",
+    "gelu": "gelu",
+    "relu": "relu",
+}
+
+
+def _infer_activation(filename_stem: str) -> str:
+    """resnet50_lswish → lswish, resnet50_relu → relu, va hokazo. Default: relu."""
+    lower = filename_stem.lower()
+    for suffix, activation in _ACTIVATION_MAP.items():
+        if lower.endswith(f"_{suffix}") or lower == suffix or f"_{suffix}_" in lower:
+            return activation
+    return "relu"
 
 # ResNet50 klass tartibi = API klass tartibi (ikkalasi ham alifbo bo'yicha)
 RESNET_NUM_CLASSES = 7
+
+# Pose features: 33 landmarks × 4 (x, y, z, visibility)
+NUM_LANDMARKS = 33
+POSE_FEAT_DIM = NUM_LANDMARKS * 4  # 132
+POSE_MODEL_PATH = MODELS_DIR / "pose_landmarker_lite.task"
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# ── PoseCNN Fusion Model ──
+
+class PoseCNNFusion(nn.Module):
+    """ResNet50 visual features (2048) + Pose features (132) → Fusion → 7 classes."""
+
+    def __init__(self, num_classes: int = 7, pose_dim: int = POSE_FEAT_DIM):
+        super().__init__()
+
+        resnet = models.resnet50()
+        self.visual_backbone = nn.Sequential(*list(resnet.children())[:-1])
+        self.visual_dim = 2048
+
+        self.pose_branch = nn.Sequential(
+            nn.Linear(pose_dim, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+        )
+        self.pose_out_dim = 128
+
+        fusion_dim = self.visual_dim + self.pose_out_dim  # 2176
+        self.classifier = nn.Sequential(
+            nn.Linear(fusion_dim, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.4),
+            nn.Linear(512, num_classes),
+        )
+
+    def forward(self, image, pose):
+        v = self.visual_backbone(image).flatten(1)
+        p = self.pose_branch(pose)
+        fused = torch.cat([v, p], dim=1)
+        return self.classifier(fused)
+
+
+# ── Pose Detector (MediaPipe) ──
+
+pose_detector: mp_vision.PoseLandmarker | None = None
+
+
+def _init_pose_detector():
+    """MediaPipe Pose Landmarker yaratish."""
+    global pose_detector
+    if not POSE_MODEL_PATH.exists():
+        print(f"WARNING: Pose model topilmadi: {POSE_MODEL_PATH}")
+        return
+    base_options = mp_tasks.BaseOptions(model_asset_path=str(POSE_MODEL_PATH))
+    options = mp_vision.PoseLandmarkerOptions(
+        base_options=base_options,
+        running_mode=mp_vision.RunningMode.IMAGE,
+        num_poses=1,
+        min_pose_detection_confidence=0.3,
+        min_tracking_confidence=0.3,
+    )
+    pose_detector = mp_vision.PoseLandmarker.create_from_options(options)
+    print("MediaPipe Pose detector tayyor")
+
+
+def extract_pose_from_pil(pil_image: Image.Image) -> torch.Tensor:
+    """PIL rasmdan 132-dim pose feature tensor olish."""
+    img_array = np.array(pil_image)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_array)
+
+    if pose_detector is None:
+        return torch.zeros(1, POSE_FEAT_DIM, device=DEVICE)
+
+    result = pose_detector.detect(mp_image)
+
+    if not result.pose_landmarks or len(result.pose_landmarks) == 0:
+        return torch.zeros(1, POSE_FEAT_DIM, device=DEVICE)
+
+    landmarks = result.pose_landmarks[0]
+    features = []
+    for lm in landmarks:
+        features.extend([lm.x, lm.y, lm.z, lm.visibility])
+
+    tensor = torch.tensor(features, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+    return tensor
+
 
 RESNET_TRANSFORM = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
-
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 app = FastAPI(title="Student Behavior Classification API")
 
@@ -68,7 +184,7 @@ app.add_middleware(
 models_registry: dict[str, dict] = {}
 active_model_version: str | None = None
 model = None  # YOLO yoki nn.Module
-model_task: str | None = None  # "classify", "detect", "resnet50"
+model_task: str | None = None  # "fusion", "resnet50", "classify", "detect"
 
 
 def load_metadata() -> dict:
@@ -87,6 +203,8 @@ def save_metadata():
 def _detect_model_type(path: Path) -> str:
     """Model tipini aniqlash: fayl nomiga va formatiga qarab."""
     name = path.stem.lower()
+    if "fusion" in name:
+        return "fusion"
     if "resnet" in name:
         return "resnet50"
     # YOLO model ekanligini tekshirish
@@ -98,15 +216,35 @@ def _detect_model_type(path: Path) -> str:
         return "unknown"
 
 
-def _load_resnet50(path: Path) -> nn.Module:
-    """ResNet50 modelni yuklash."""
+def _load_resnet50(path: Path, activation: str = "relu") -> nn.Module:
+    """ResNet50 modelni yuklash — tanlangan aktivatsiya bilan.
+
+    LSwish kabi o'rganiluvchi aktivatsiyalar uchun modelga β parametrlari
+    qo'shiladi, shuning uchun state_dict yuklashdan OLDIN ReLU lar
+    almashtiriladi.
+    """
     resnet = models.resnet50()
     resnet.fc = nn.Linear(resnet.fc.in_features, 7)
+
+    if activation != "relu":
+        factory = build_activation(activation)
+        replace_activations(resnet, factory)
+
     state = torch.load(str(path), map_location=DEVICE, weights_only=True)
     resnet.load_state_dict(state)
     resnet.to(DEVICE)
     resnet.eval()
     return resnet
+
+
+def _load_fusion(path: Path) -> nn.Module:
+    """PoseCNN Fusion modelni yuklash."""
+    fusion_model = PoseCNNFusion(num_classes=7)
+    state = torch.load(str(path), map_location=DEVICE, weights_only=True)
+    fusion_model.load_state_dict(state)
+    fusion_model.to(DEVICE)
+    fusion_model.eval()
+    return fusion_model
 
 
 def _activate_model(version: str):
@@ -120,8 +258,12 @@ def _activate_model(version: str):
         detected_type = entry["metadata"].get("task") or _detect_model_type(path)
         entry["metadata"]["task"] = detected_type
 
-        if detected_type == "resnet50":
-            entry["model"] = _load_resnet50(path)
+        if detected_type == "fusion":
+            entry["model"] = _load_fusion(path)
+        elif detected_type == "resnet50":
+            activation = entry["metadata"].get("activation") or _infer_activation(path.stem)
+            entry["metadata"]["activation"] = activation
+            entry["model"] = _load_resnet50(path, activation=activation)
         else:
             entry["model"] = YOLO(str(path))
             detected_type = entry["model"].task or "detect"
@@ -136,6 +278,7 @@ def _activate_model(version: str):
 @app.on_event("startup")
 def load_models():
     _init_face_detector()
+    _init_pose_detector()
     metadata = load_metadata()
 
     for pt_file in sorted(MODELS_DIR.glob("*.pt")):
@@ -144,7 +287,9 @@ def load_models():
 
         # Fayl nomidan model tipini oldindan aniqlash (lazy load uchun)
         task_hint = meta.get("task")
-        if not task_hint and "resnet" in version.lower():
+        if not task_hint and "fusion" in version.lower():
+            task_hint = "fusion"
+        elif not task_hint and "resnet" in version.lower():
             task_hint = "resnet50"
 
         models_registry[version] = {
@@ -157,12 +302,16 @@ def load_models():
                 "description": meta.get("description"),
                 "filename": pt_file.name,
                 "task": task_hint,
+                "activation": meta.get("activation") or (
+                    _infer_activation(version) if task_hint == "resnet50" else None
+                ),
             },
         }
 
-    # Default: best_resnet50, agar yo'q bo'lsa best_cls, keyin birinchi topilgan model
+    # Default tartib: eng yaxshi baseline (relu), keyin lswish, keyin boshqalar
     default_version = next(
-        (v for v in ("best_resnet50", "best_cls") if v in models_registry),
+        (v for v in ("resnet50_relu", "resnet50_lswish", "resnet50_gelu",
+                     "resnet50_silu", "resnet50_mish") if v in models_registry),
         next(iter(models_registry), None),
     )
     if default_version:
@@ -177,6 +326,37 @@ def run_resnet50_classification(pil_image: Image.Image, confidence: float) -> di
 
     with torch.no_grad():
         outputs = model(input_tensor)
+        probs = torch.softmax(outputs, dim=1)[0]
+
+    cls_id = int(probs.argmax())
+    conf = float(probs[cls_id])
+
+    if conf < confidence:
+        return {
+            "class_id": -1,
+            "class_name": "unknown",
+            "confidence": round(conf, 3),
+            "group": "unknown",
+        }
+
+    cls_name = CLASS_NAMES.get(cls_id, "unknown")
+    group = "attentive" if cls_id in ATTENTIVE_CLASSES else "distracted"
+
+    return {
+        "class_id": cls_id,
+        "class_name": cls_name,
+        "confidence": round(conf, 3),
+        "group": group,
+    }
+
+
+def run_fusion_classification(pil_image: Image.Image, confidence: float) -> dict:
+    """PoseCNN Fusion bilan bitta rasmni classify qilish (rasm + pose)."""
+    input_tensor = RESNET_TRANSFORM(pil_image).unsqueeze(0).to(DEVICE)
+    pose_tensor = extract_pose_from_pil(pil_image)
+
+    with torch.no_grad():
+        outputs = model(input_tensor, pose_tensor)
         probs = torch.softmax(outputs, dim=1)[0]
 
     cls_id = int(probs.argmax())
@@ -316,7 +496,9 @@ def detect_and_classify(pil_image: Image.Image, confidence: float) -> dict:
         crop = pil_image.crop((cx1, cy1, cx2, cy2))
 
         # Classify
-        if model_task == "resnet50":
+        if model_task == "fusion":
+            cls_result = run_fusion_classification(crop, confidence)
+        elif model_task == "resnet50":
             cls_result = run_resnet50_classification(crop, confidence)
         elif model_task == "classify":
             cls_result = run_classification(np.array(crop), confidence)
@@ -363,7 +545,9 @@ async def classify_single(
     image_bytes = await file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-    if model_task == "resnet50":
+    if model_task == "fusion":
+        return run_fusion_classification(image, confidence)
+    elif model_task == "resnet50":
         return run_resnet50_classification(image, confidence)
     elif model_task == "classify":
         img_array = np.array(image)
@@ -388,7 +572,9 @@ async def classify_batch(
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-        if model_task == "resnet50":
+        if model_task == "fusion":
+            results.append(run_fusion_classification(image, confidence))
+        elif model_task == "resnet50":
             results.append(run_resnet50_classification(image, confidence))
         elif model_task == "classify":
             img_array = np.array(image)
@@ -430,6 +616,7 @@ def list_models_endpoint():
                 "accuracy": info["metadata"].get("accuracy"),
                 "description": info["metadata"].get("description"),
                 "task": info["metadata"].get("task"),
+                "activation": info["metadata"].get("activation"),
             }
             for ver, info in models_registry.items()
         ],
@@ -457,7 +644,12 @@ async def upload_model(
     content = await file.read()
     dest.write_bytes(content)
 
-    task_hint = "resnet50" if "resnet" in version.lower() else None
+    if "fusion" in version.lower():
+        task_hint = "fusion"
+    elif "resnet" in version.lower():
+        task_hint = "resnet50"
+    else:
+        task_hint = None
 
     models_registry[version] = {
         "path": dest,
@@ -469,6 +661,7 @@ async def upload_model(
             "description": description,
             "filename": f"{version}.pt",
             "task": task_hint,
+            "activation": _infer_activation(version) if task_hint == "resnet50" else None,
         },
     }
     save_metadata()

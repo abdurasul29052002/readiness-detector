@@ -2,12 +2,13 @@ path: ./dataset
 train: images/train
 val: images/val
 
-nc: 7
+nc: 8
 names:
-  0: hand-raising
+  0: write
   1: read
-  2: write
-  3: discuss
-  4: bow-head
-  5: turn-head
-  6: standing
+  2: focus
+  3: turn-head
+  4: hand-raising
+  5: standing
+  6: discuss
+  7: teacher

@@ -92,7 +92,16 @@ export default function ModelPanel() {
                       <span className="text-[9px] text-zinc-400">Yuklanmoqda...</span>
                     )}
                   </div>
-                  {m.task && <p className="text-[10px] text-zinc-500 mt-0.5">{m.task}</p>}
+                  {(m.task || m.activation) && (
+                    <p className="text-[10px] text-zinc-500 mt-0.5">
+                      {[m.task, m.activation].filter(Boolean).join(" • ")}
+                      {m.accuracy != null && (
+                        <span className="ml-1 text-zinc-600">
+                          ({(m.accuracy * 100).toFixed(2)}%)
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </button>
               );
             })}

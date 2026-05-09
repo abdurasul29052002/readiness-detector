@@ -41,6 +41,8 @@ frontend/dist/
 SCB-Dataset/
 dataset/
 *.zip
+training-v2/dataset
+training-v2/dataset/
 
 # Training artifacts
 runs/
@@ -52,6 +54,11 @@ training/models
 training/dataset
 training/crop_dataset
 training/balanced_dataset
+training-v2/runs/
+training-v2/models/
+training-v2/checkpoints/
+training-v2/logs/
+training-v2/crop_dataset/
 
 # YOLO/Ultralytics
 yolov5/

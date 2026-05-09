@@ -138,6 +138,7 @@ export interface ModelInfo {
   accuracy: number | null;
   description: string | null;
   task: string | null;
+  activation: string | null;
 }
 
 export interface ModelListResponse {

@@ -1,170 +1,108 @@
-"""
-Mavjud YOLO detection datasetdan classification dataset yaratish.
-
-Har bir rasmdan bounding boxlar bo'yicha o'quvchilarni kesib olib,
-class bo'yicha papkalarga saqlaydi (ImageNet-style).
-
-Natija: dataset/crop_dataset/{train,val}/{class_name}/*.jpg
-"""
-
-import sys
-from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
 import cv2
+from pathlib import Path
+from collections import Counter
+
+ROOT = Path(__file__).parent
+DATASET = ROOT / "dataset"
+CROP_DIR = ROOT / "crop_dataset"
 
 CLASS_NAMES = {
-    0: "hand-raising",
+    0: "write",
     1: "read",
-    2: "write",
-    3: "discuss",
-    4: "bow-head",
-    5: "turn-head",
-    6: "standing",
+    2: "focus",
+    3: "turn-head",
+    4: "hand-raising",
+    5: "standing",
+    6: "discuss",
+    7: "teacher",
 }
 
-# Crop atrofiga qo'shimcha joy (20%)
-PADDING_RATIO = 0.2
-# Minimal crop o'lchami (piksel) — juda kichik croplarni o'tkazib yuborish
-MIN_CROP_SIZE = 20
-
-BASE_DIR = Path(__file__).resolve().parent
-DATASET_DIR = BASE_DIR / "dataset"
-OUTPUT_DIR = BASE_DIR / "crop_dataset"
+PADDING = 0.1
 
 
-def parse_label_file(label_path: Path) -> list[tuple[int, float, float, float, float]]:
-    """YOLO formatdagi label faylni o'qiydi."""
-    boxes = []
-    for line in label_path.read_text().strip().splitlines():
-        parts = line.strip().split()
-        if len(parts) < 5:
-            continue
-        cls_id = int(parts[0])
-        cx, cy, w, h = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
-        boxes.append((cls_id, cx, cy, w, h))
-    return boxes
+def crop_bbox(img, cx, cy, w, h, padding=PADDING):
+    ih, iw = img.shape[:2]
+    x1 = int((cx - w / 2 - padding * w) * iw)
+    y1 = int((cy - h / 2 - padding * h) * ih)
+    x2 = int((cx + w / 2 + padding * w) * iw)
+    y2 = int((cy + h / 2 + padding * h) * ih)
+    x1, y1 = max(0, x1), max(0, y1)
+    x2, y2 = min(iw, x2), min(ih, y2)
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return img[y1:y2, x1:x2]
 
 
-def crop_and_save(img, cls_id: int, cx: float, cy: float, bw: float, bh: float,
-                  img_h: int, img_w: int, output_path: Path):
-    """Rasmdan bitta o'quvchini kesib oladi va saqlaydi."""
-    # Padding qo'shish
-    pad_w = bw * PADDING_RATIO
-    pad_h = bh * PADDING_RATIO
+def process_split(split: str):
+    img_dir = DATASET / "images" / split
+    lbl_dir = DATASET / "labels" / split
+    out_dir = CROP_DIR / split
+    counts = Counter()
 
-    # Normalized koordinatalarni pikselga aylantirish
-    x1 = int((cx - bw / 2 - pad_w) * img_w)
-    y1 = int((cy - bh / 2 - pad_h) * img_h)
-    x2 = int((cx + bw / 2 + pad_w) * img_w)
-    y2 = int((cy + bh / 2 + pad_h) * img_h)
+    label_files = sorted(lbl_dir.glob("*.txt"))
+    total = len(label_files)
 
-    # Chegaralarni tekshirish
-    x1 = max(0, x1)
-    y1 = max(0, y1)
-    x2 = min(img_w, x2)
-    y2 = min(img_h, y2)
+    for i, lbl_path in enumerate(label_files):
+        img_path = img_dir / lbl_path.with_suffix(".jpg").name
+        if not img_path.exists():
+            for ext in (".png", ".jpeg", ".bmp"):
+                alt = img_dir / lbl_path.with_suffix(ext).name
+                if alt.exists():
+                    img_path = alt
+                    break
 
-    if (x2 - x1) < MIN_CROP_SIZE or (y2 - y1) < MIN_CROP_SIZE:
-        return False
-
-    crop = img[y1:y2, x1:x2]
-    cv2.imwrite(str(output_path), crop)
-    return True
-
-
-def process_image(args: tuple) -> tuple[int, int]:
-    """Bitta rasmni qayta ishlaydi, croplarni saqlaydi."""
-    img_path, label_path, split = args
-    saved = 0
-    skipped = 0
-
-    img = cv2.imread(str(img_path))
-    if img is None:
-        return 0, 0
-
-    img_h, img_w = img.shape[:2]
-    boxes = parse_label_file(label_path)
-
-    for i, (cls_id, cx, cy, bw, bh) in enumerate(boxes):
-        cls_name = CLASS_NAMES.get(cls_id)
-        if cls_name is None:
-            skipped += 1
+        if not img_path.exists():
             continue
 
-        out_dir = OUTPUT_DIR / split / cls_name
-        out_path = out_dir / f"{img_path.stem}_{i}.jpg"
-
-        if crop_and_save(img, cls_id, cx, cy, bw, bh, img_h, img_w, out_path):
-            saved += 1
-        else:
-            skipped += 1
-
-    return saved, skipped
-
-
-def collect_tasks(split: str) -> list[tuple]:
-    """Train yoki val uchun barcha rasm-label juftliklarini yig'adi."""
-    img_dir = DATASET_DIR / "images" / split
-    lbl_dir = DATASET_DIR / "labels" / split
-    tasks = []
-
-    for img_path in img_dir.iterdir():
-        if img_path.suffix.lower() not in (".jpg", ".jpeg", ".png", ".bmp", ".webp"):
+        img = cv2.imread(str(img_path))
+        if img is None:
             continue
-        label_path = lbl_dir / (img_path.stem + ".txt")
-        if label_path.exists():
-            tasks.append((img_path, label_path, split))
 
-    return tasks
+        for line in lbl_path.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            cls_id = int(parts[0])
+            cx, cy, w, h = map(float, parts[1:5])
+
+            crop = crop_bbox(img, cx, cy, w, h)
+            if crop is None or crop.shape[0] < 10 or crop.shape[1] < 10:
+                continue
+
+            cls_name = CLASS_NAMES.get(cls_id, f"class_{cls_id}")
+            cls_dir = out_dir / cls_name
+            cls_dir.mkdir(parents=True, exist_ok=True)
+
+            idx = counts[f"{split}_{cls_id}"]
+            counts[f"{split}_{cls_id}"] += 1
+            fname = f"{lbl_path.stem}_{idx}.jpg"
+            cv2.imwrite(str(cls_dir / fname), crop)
+
+        if (i + 1) % 500 == 0 or (i + 1) == total:
+            print(f"  {split}: {i + 1}/{total} images processed")
+
+    return counts
 
 
 def main():
-    # Papkalar yaratish
-    for split in ("train", "val"):
-        for cls_name in CLASS_NAMES.values():
-            (OUTPUT_DIR / split / cls_name).mkdir(parents=True, exist_ok=True)
-
-    # Barcha vazifalarni yig'ish
-    tasks = []
-    for split in ("train", "val"):
-        split_tasks = collect_tasks(split)
-        tasks.extend(split_tasks)
-        print(f"{split}: {len(split_tasks)} ta rasm topildi")
-
-    print(f"\nJami: {len(tasks)} ta rasm qayta ishlanadi...")
-    print(f"Natija: {OUTPUT_DIR}\n")
-
-    total_saved = 0
-    total_skipped = 0
-    done = 0
-
-    workers = 6
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(process_image, t): t for t in tasks}
-
-        for future in as_completed(futures):
-            saved, skipped = future.result()
-            total_saved += saved
-            total_skipped += skipped
-            done += 1
-
-            if done % 2000 == 0 or done == len(tasks):
-                pct = done / len(tasks) * 100
-                print(f"  [{pct:5.1f}%] {done}/{len(tasks)} rasm — "
-                      f"{total_saved} crop saqlandi, {total_skipped} o'tkazildi")
-
-    # Statistika
-    print(f"\n{'='*50}")
-    print(f"TAYYOR! Jami: {total_saved} crop saqlandi, {total_skipped} o'tkazildi\n")
+    print("Crop dataset yaratilmoqda...")
+    print(f"Manba: {DATASET}")
+    print(f"Natija: {CROP_DIR}")
+    print(f"Padding: {PADDING * 100:.0f}%\n")
 
     for split in ("train", "val"):
-        print(f"  {split}:")
-        for cls_name in CLASS_NAMES.values():
-            cls_dir = OUTPUT_DIR / split / cls_name
-            count = len(list(cls_dir.glob("*.jpg")))
-            print(f"    {cls_name:15s}: {count:>6d}")
-        print()
+        print(f"[{split}]")
+        counts = process_split(split)
+        total = 0
+        for cls_id, cls_name in sorted(CLASS_NAMES.items()):
+            key = f"{split}_{cls_id}"
+            n = counts.get(key, 0)
+            total += n
+            print(f"  {cls_name}: {n}")
+        print(f"  JAMI: {total}\n")
+
+    print("Tayyor!")
 
 
 if __name__ == "__main__":

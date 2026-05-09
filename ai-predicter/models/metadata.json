@@ -1,0 +1,42 @@
+{
+  "resnet50_relu": {
+    "version": "resnet50_relu",
+    "task": "resnet50",
+    "activation": "relu",
+    "training_date": "2026-04-18",
+    "accuracy": 0.9169,
+    "description": "Baseline ReLU. Top-1 91.69%, F1 92.72%. 10 epoch, batch=32."
+  },
+  "resnet50_mish": {
+    "version": "resnet50_mish",
+    "task": "resnet50",
+    "activation": "mish",
+    "training_date": "2026-04-23",
+    "accuracy": 0.9139,
+    "description": "Mish aktivatsiya. Top-1 91.39%, F1 92.40%. Self-regularized non-monotonic."
+  },
+  "resnet50_silu": {
+    "version": "resnet50_silu",
+    "task": "resnet50",
+    "activation": "silu",
+    "training_date": "2026-04-23",
+    "accuracy": 0.9139,
+    "description": "SiLU (Swish, beta=1). Top-1 91.39%, F1 92.64%."
+  },
+  "resnet50_gelu": {
+    "version": "resnet50_gelu",
+    "task": "resnet50",
+    "activation": "gelu",
+    "training_date": "2026-04-23",
+    "accuracy": 0.9162,
+    "description": "GELU. Top-1 91.62%, F1 92.59%. Transformer'larda keng ishlatiladi."
+  },
+  "resnet50_lswish": {
+    "version": "resnet50_lswish",
+    "task": "resnet50",
+    "activation": "lswish",
+    "training_date": "2026-04-24",
+    "accuracy": 0.9160,
+    "description": "LearnableSwish (ilmiy yangilik). Top-1 91.60%, F1 92.60%. Hand-raising F1 92.35% — eng yuqori."
+  }
+}

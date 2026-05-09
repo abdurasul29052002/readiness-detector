@@ -1,103 +1,84 @@
 """
-Crop datasetni balanslashtirish — katta klasslarni undersampling qilish.
+Crop datasetni balanslashtirish (C variant — Hybrid):
+  - Majority (focus/write/read) undersample → train 20K / val 2K
+  - Minority (turn-head/discuss/hand-raising/standing) bor holicha qoldiriladi
+  - teacher klassi drop qilinadi (604 ta juda kam, domain ham boshqa)
 
-Har bir klass uchun maksimal rasm soni belgilanadi.
-Ortiqcha rasmlar random tanlanib, faqat tanlanganlari yangi papkaga ko'chiriladi.
-
-Ishlatish:
-  python balance_dataset.py
+Qolgan kichik imbalance (~5x) training vaqtida WeightedRandomSampler
+va class weight bilan qoplanadi.
 """
 
 import random
 import shutil
 from pathlib import Path
 
-# Har bir klass uchun maksimal rasm soni
-MAX_PER_CLASS = 100_000
+BASE = Path(__file__).resolve().parent
+SRC = BASE / "crop_dataset"
+DST = BASE / "balanced_dataset"
 
-CLASS_NAMES = [
-    "hand-raising",
-    "read",
-    "write",
-    "discuss",
-    "bow-head",
-    "turn-head",
-    "standing",
-]
+MAJORITY = {"focus", "write", "read"}
+DROP = {"teacher"}
 
-BASE_DIR = Path(__file__).resolve().parent
-INPUT_DIR = BASE_DIR / "crop_dataset"
-OUTPUT_DIR = BASE_DIR / "balanced_dataset"
+CAPS = {
+    "train": 20_000,
+    "val": 2_000,
+}
 
 SEED = 42
 
 
 def balance_split(split: str):
-    """Bitta split (train/val) ni balanslashtiradi."""
-    print(f"\n{'='*50}")
-    print(f"  {split.upper()}")
-    print(f"{'='*50}")
+    cap = CAPS[split]
+    src_split = SRC / split
+    dst_split = DST / split
 
-    total_original = 0
-    total_balanced = 0
+    total_orig = 0
+    total_out = 0
 
-    for cls_name in CLASS_NAMES:
-        src_dir = INPUT_DIR / split / cls_name
-        dst_dir = OUTPUT_DIR / split / cls_name
-        dst_dir.mkdir(parents=True, exist_ok=True)
+    for cls_dir in sorted(src_split.iterdir()):
+        if not cls_dir.is_dir():
+            continue
+        cls = cls_dir.name
+        if cls in DROP:
+            print(f"  {cls:15s}: DROPPED")
+            continue
 
-        # Barcha rasmlarni yig'ish
-        images = list(src_dir.glob("*.jpg"))
-        original_count = len(images)
-        total_original += original_count
+        images = list(cls_dir.glob("*.jpg"))
+        original = len(images)
+        total_orig += original
 
-        # Agar MAX_PER_CLASS dan kam bo'lsa — hammasini olish
-        if original_count <= MAX_PER_CLASS:
-            selected = images
-        else:
+        if cls in MAJORITY and original > cap:
             random.seed(SEED)
-            selected = random.sample(images, MAX_PER_CLASS)
+            selected = random.sample(images, cap)
+            status = f"-> {cap}"
+        else:
+            selected = images
+            status = "hammasi"
 
-        # Ko'chirish
-        for img_path in selected:
-            shutil.copy2(img_path, dst_dir / img_path.name)
+        out_dir = dst_split / cls
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for img in selected:
+            shutil.copy2(img, out_dir / img.name)
 
-        balanced_count = len(selected)
-        total_balanced += balanced_count
+        total_out += len(selected)
+        print(f"  {cls:15s}: {original:>7d} -> {len(selected):>7d}  ({status})")
 
-        # Statistika
-        ratio = balanced_count / original_count * 100 if original_count > 0 else 0
-        status = "hammasi" if original_count <= MAX_PER_CLASS else f"-> {MAX_PER_CLASS}"
-        print(f"  {cls_name:15s}: {original_count:>7d} -> {balanced_count:>7d}  ({status})")
-
-    print(f"\n  Jami: {total_original:,} -> {total_balanced:,}")
-    return total_original, total_balanced
+    print(f"  JAMI: {total_orig:,} -> {total_out:,}")
 
 
 def main():
-    print(f"Max per class: {MAX_PER_CLASS:,}")
-    print(f"Input:  {INPUT_DIR}")
-    print(f"Output: {OUTPUT_DIR}")
+    print(f"Input:  {SRC}")
+    print(f"Output: {DST}")
 
-    # Eski natijalarni tozalash
-    if OUTPUT_DIR.exists():
-        shutil.rmtree(OUTPUT_DIR)
+    if DST.exists():
+        shutil.rmtree(DST)
         print("Eski balanced_dataset o'chirildi")
 
-    grand_original = 0
-    grand_balanced = 0
-
     for split in ("train", "val"):
-        orig, bal = balance_split(split)
-        grand_original += orig
-        grand_balanced += bal
+        print(f"\n=== {split.upper()} (cap={CAPS[split]}) ===")
+        balance_split(split)
 
-    print(f"\n{'='*50}")
-    print(f"  TAYYOR!")
-    print(f"  {grand_original:,} -> {grand_balanced:,} rasm")
-    print(f"  Tejaldi: {grand_original - grand_balanced:,} rasm")
-    print(f"  Natija: {OUTPUT_DIR}")
-    print(f"{'='*50}")
+    print(f"\nTayyor! Natija: {DST}")
 
 
 if __name__ == "__main__":
