@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Student Behavior Detection",
-  description: "YOLOv8 - Real-time Student Behavior Monitoring",
+  title: "EduReady platform",
+  description: "EduReady Real-time Student Behavior Monitoring",
 };
 
 export default function RootLayout({
