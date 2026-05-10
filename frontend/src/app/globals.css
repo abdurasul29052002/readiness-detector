@@ -2,11 +2,19 @@
 
 @theme {
   --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+
+  /* Brand palette — yaratadi: bg-primary, text-primary, border-primary va h.k. */
   --color-primary: #6366f1;
   --color-primary-glow: rgba(99, 102, 241, 0.15);
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+
+  /* Surface scale — qatlamlashgan glass uchun */
   --color-surface: rgba(255, 255, 255, 0.03);
   --color-surface-hover: rgba(255, 255, 255, 0.06);
   --color-border: rgba(255, 255, 255, 0.06);
+  --color-bg-base: #0a0a14;
 }
 
 @layer base {

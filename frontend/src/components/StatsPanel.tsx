@@ -7,13 +7,13 @@ interface Props {
 }
 
 const CLASS_CONFIG: Record<string, { label: string; icon: string }> = {
-  discuss:        { label: "Muhokama",          icon: "&#128172;" },
-  focus:          { label: "Diqqatli o'tirish", icon: "&#128161;" },
-  "hand-raising": { label: "Qo'l ko'tarish",   icon: "&#9995;" },
-  read:           { label: "O'qish",            icon: "&#128214;" },
-  standing:       { label: "O'rnidan turish",   icon: "&#128694;" },
-  "turn-head":    { label: "Boshni burish",     icon: "&#128064;" },
-  write:          { label: "Yozish",            icon: "&#9997;" },
+  discuss:        { label: "Muhokama",          icon: "\u{1F4AC}" },
+  focus:          { label: "Diqqatli o'tirish", icon: "\u{1F4A1}" },
+  "hand-raising": { label: "Qo'l ko'tarish",    icon: "\u{270B}" },
+  read:           { label: "O'qish",            icon: "\u{1F4D6}" },
+  standing:       { label: "O'rnidan turish",   icon: "\u{1F6B6}" },
+  "turn-head":    { label: "Boshni burish",     icon: "\u{1F440}" },
+  write:          { label: "Yozish",            icon: "\u{270D}" },
 };
 
 const ATTENTIVE = new Set(["discuss", "focus", "hand-raising", "read", "write"]);
@@ -158,7 +158,7 @@ export default function StatsPanel({ data }: Props) {
                   <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                     isAtt ? 'bg-emerald-400 glow-green-sm' : 'bg-red-400 glow-red-sm'
                   }`} />
-                  <span className="text-sm" dangerouslySetInnerHTML={{ __html: cfg?.icon || '' }} />
+                  <span className="text-sm">{cfg?.icon || ''}</span>
                   <span className="text-[13px] font-medium text-zinc-300">
                     {cfg?.label || name}
                   </span>

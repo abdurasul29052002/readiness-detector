@@ -88,12 +88,12 @@ export default function CamerasPage() {
           }`} onClick={() => setSelectedCamera(cam.id === selectedCamera ? null : cam.id)}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-sm">{cam.name}</h3>
-              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-400" : "text-zinc-400"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${cam.active ? "bg-emerald-400" : "bg-zinc-600"}`} />
+              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-400" : "text-red-400"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${cam.active ? "bg-emerald-400" : "bg-red-400"}`} />
                 {cam.active ? "Faol" : "Nofaol"}
               </span>
             </div>
-            {cam.description && <p className="text-xs text-zinc-500 mb-3">{cam.description}</p>}
+            {cam.description && <p className="text-xs text-zinc-400 mb-3">{cam.description}</p>}
             <div className="flex gap-2">
               <button onClick={(e) => { e.stopPropagation(); handleToggle(cam.id); }}
                 className="text-xs px-3 py-1 rounded-lg glass hover:bg-white/5 transition-all cursor-pointer">
@@ -108,21 +108,28 @@ export default function CamerasPage() {
         ))}
       </div>
 
-      {/* Multi-Camera View */}
+      {/* Jonli kuzatuv — bitta tanlangan kamera */}
       {activeCameras.length > 0 && (
         <>
-          <h3 className="text-lg font-bold mb-4">Jonli kuzatuv</h3>
-          <div className={`grid gap-6 ${activeCameras.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
-            {activeCameras.map((cam) => (
-              <div key={cam.id}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Jonli kuzatuv</h3>
+            {activeCameras.length > 1 && (
+              <p className="text-xs text-zinc-400">Yuqoridagi kartadan kamera tanlang</p>
+            )}
+          </div>
+
+          {(() => {
+            const liveCam = activeCameras.find((c) => c.id === selectedCamera) ?? activeCameras[0];
+            return (
+              <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-semibold">{cam.name}</span>
+                  <span className="text-sm font-semibold">{liveCam.name}</span>
                 </div>
-                <DetectionView cameraId={cam.id} compact />
+                <DetectionView key={liveCam.id} cameraId={liveCam.id} compact />
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </>
       )}
     </div>

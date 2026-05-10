@@ -59,9 +59,9 @@ export default function ModelPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl z-[100] overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-[#0a0a14]/95 backdrop-blur-xl shadow-2xl z-[100] overflow-hidden">
           <div className="px-3 py-2 border-b border-white/10">
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">Model tanlang</span>
+            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Model tanlang</span>
           </div>
           <div className="p-1.5 flex flex-col gap-1">
             {data.models.map((m) => {
@@ -93,10 +93,10 @@ export default function ModelPanel() {
                     )}
                   </div>
                   {(m.task || m.activation) && (
-                    <p className="text-[10px] text-zinc-500 mt-0.5">
+                    <p className="text-[10px] text-zinc-400 mt-0.5">
                       {[m.task, m.activation].filter(Boolean).join(" • ")}
                       {m.accuracy != null && (
-                        <span className="ml-1 text-zinc-600">
+                        <span className="ml-1 text-zinc-500">
                           ({(m.accuracy * 100).toFixed(2)}%)
                         </span>
                       )}

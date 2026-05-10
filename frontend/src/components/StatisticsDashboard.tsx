@@ -72,7 +72,7 @@ export default function StatisticsDashboard() {
       <div className="flex gap-4 items-end mb-6 flex-wrap">
         {mode === "daily" && (
           <div>
-            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Sana</label>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Sana</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
           </div>

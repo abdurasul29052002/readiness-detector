@@ -98,11 +98,11 @@ export default function UsersPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Login</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Ism</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Rol</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Holat</th>
-              <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-widest">Amallar</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Login</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Ism</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Rol</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Holat</th>
+              <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Amallar</th>
             </tr>
           </thead>
           <tbody>

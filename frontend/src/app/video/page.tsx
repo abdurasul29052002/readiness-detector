@@ -105,10 +105,10 @@ export default function VideoPage() {
         {/* Jobs List */}
         <div className="glass rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-white/5">
-            <span className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Ishlar tarixi</span>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Ishlar tarixi</span>
           </div>
           {jobs.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-zinc-600">Hali video yuklanmagan</p>
+            <p className="px-5 py-8 text-center text-sm text-zinc-400">Hali video yuklanmagan</p>
           ) : (
             jobs.map((job) => (
               <div key={job.id} onClick={() => job.status === "COMPLETED" && handleViewDetail(job.id)}
@@ -116,7 +116,7 @@ export default function VideoPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{job.original_filename}</p>
-                    <p className="text-[10px] text-zinc-600">{new Date(job.created_at).toLocaleString("uz")}</p>
+                    <p className="text-[10px] text-zinc-500">{new Date(job.created_at).toLocaleString("uz")}</p>
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${
                     job.status === "COMPLETED" ? "bg-emerald-500/20 text-emerald-400" :
@@ -128,7 +128,7 @@ export default function VideoPage() {
                   </span>
                 </div>
                 {job.status === "COMPLETED" && (
-                  <div className="flex gap-4 mt-1 text-[10px] text-zinc-600">
+                  <div className="flex gap-4 mt-1 text-[10px] text-zinc-500">
                     <span>Diqqatli: <span className="text-emerald-400">{job.overall_attentive_percent.toFixed(1)}%</span></span>
                     <span>Chalg&apos;igan: <span className="text-red-400">{job.overall_distracted_percent.toFixed(1)}%</span></span>
                   </div>

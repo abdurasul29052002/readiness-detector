@@ -38,7 +38,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gradient">Tizimga kirish</h2>
-          <p className="text-sm text-zinc-500 mt-1">Foydalanuvchi ma&apos;lumotlarini kiriting</p>
+          <p className="text-sm text-zinc-400 mt-1">Foydalanuvchi ma&apos;lumotlarini kiriting</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

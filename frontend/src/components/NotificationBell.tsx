@@ -8,6 +8,10 @@ import { useWebSocket } from "@/lib/useWebSocket";
 
 function getWsUrl() {
   if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL + "/ws/notifications";
+  // API URL bilan WS URL'ni sinxron tutish: backend boshqa portda turishi mumkin
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/^http/, "ws") + "/ws/notifications";
+  }
   if (typeof window === "undefined") return "ws://localhost:8080/ws/notifications";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${window.location.host}/ws/notifications`;
