@@ -1,21 +1,29 @@
+# syntax=docker/dockerfile:1.7
 FROM eclipse-temurin:25-jdk AS build
 
 # Node.js kerak Vaadin frontend build uchun
-RUN apt-get update && apt-get install -y curl && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y nodejs
 
 WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+RUN --mount=type=cache,target=/root/.m2 \
+    chmod +x mvnw && ./mvnw dependency:go-offline -B
 
 COPY src/ src/
-RUN ./mvnw package -Dmaven.test.skip=true -B
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw package -Dmaven.test.skip=true -B
 
 FROM eclipse-temurin:25-jre
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    apt-get update && apt-get install -y --no-install-recommends curl
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
