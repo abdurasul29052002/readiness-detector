@@ -22,8 +22,6 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
-import cv2
-import urllib.request
 from torchvision import models, transforms
 from ultralytics import YOLO
 
@@ -277,7 +275,7 @@ def _activate_model(version: str):
 
 @app.on_event("startup")
 def load_models():
-    _init_face_detector()
+    _init_person_detector()
     _init_pose_detector()
     metadata = load_metadata()
 
@@ -354,6 +352,16 @@ def run_fusion_classification(pil_image: Image.Image, confidence: float) -> dict
     """PoseCNN Fusion bilan bitta rasmni classify qilish (rasm + pose)."""
     input_tensor = RESNET_TRANSFORM(pil_image).unsqueeze(0).to(DEVICE)
     pose_tensor = extract_pose_from_pil(pil_image)
+
+    # Pose topilmasa fusion modelga shovqin kiradi — natija ishonchsiz bo'ladi.
+    # Training datasetida har doim haqiqiy pose bor edi, nol vector OOD hisoblanadi.
+    if torch.all(pose_tensor == 0):
+        return {
+            "class_id": -1,
+            "class_name": "no_pose",
+            "confidence": 0.0,
+            "group": "unknown",
+        }
 
     with torch.no_grad():
         outputs = model(input_tensor, pose_tensor)
@@ -439,59 +447,86 @@ def make_summary(results: list) -> dict:
     }
 
 
-# ── Face detection (OpenCV YuNet) ──
+# ── Person detection (YOLOv8n COCO-pretrained) ──
 
-YUNET_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
-YUNET_PATH = MODELS_DIR / "yunet.onnx"
-face_detector: cv2.FaceDetectorYN | None = None
+PERSON_MODEL_PATH = MODELS_DIR / "yolov8n.pt"
+PERSON_CLASS_ID = 0  # COCO 0 = "person"
+MIN_PERSON_CONF = 0.35  # YOLOv8 person bbox uchun minimal ishonch
+person_detector: YOLO | None = None
 
 
-def _init_face_detector():
-    """YuNet modelni yuklab olish va detector yaratish."""
-    global face_detector
+def _init_person_detector():
+    """YOLOv8 person detector yaratish — talabaning butun gavdasini topadi."""
+    global person_detector
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    if not YUNET_PATH.exists():
-        print(f"YuNet model yuklanmoqda: {YUNET_URL}")
-        urllib.request.urlretrieve(YUNET_URL, str(YUNET_PATH))
-        print(f"YuNet model saqlandi: {YUNET_PATH}")
-    face_detector = cv2.FaceDetectorYN.create(str(YUNET_PATH), "", (0, 0))
-    face_detector.setScoreThreshold(0.5)
-    print("YuNet face detector tayyor")
+    if PERSON_MODEL_PATH.exists():
+        person_detector = YOLO(str(PERSON_MODEL_PATH))
+    else:
+        # ultralytics avtomatik yuklab oladi
+        print(f"YOLOv8n yuklanmoqda...")
+        person_detector = YOLO("yolov8n.pt")
+        # Yuklab olingan faylni models/ ga ko'chirish (keyingi startupda re-download bo'lmasligi uchun)
+        try:
+            ckpt = Path(person_detector.ckpt_path)
+            if ckpt.exists() and ckpt.resolve() != PERSON_MODEL_PATH.resolve():
+                import shutil
+                shutil.copy(ckpt, PERSON_MODEL_PATH)
+                print(f"YOLOv8n saqlandi: {PERSON_MODEL_PATH}")
+        except Exception as e:
+            print(f"YOLOv8n cache to'liq saqlanmadi: {e}")
+    print("YOLOv8 person detector tayyor")
 
 
-# Crop padding koeffitsientlari (yuz o'lchamiga nisbatan)
-PAD_LEFT = 0.5
-PAD_RIGHT = 0.5
-PAD_TOP = 0.3
-PAD_BOTTOM = 1.5  # pastga ko'proq — yelka, qo'l, parta ko'rinishi uchun
+# Crop atrofiga qo'shimcha padding (kontekst uchun)
+PERSON_PAD_RATIO = 0.05  # bbox tomonlariga 5% kengaytirish
+
+# Sifat filtrlari
+MIN_PERSON_AREA_RATIO = 0.005  # bbox kadrning 0.5%idan kichik bo'lsa, false positive
+MIN_PERSON_ASPECT = 0.4  # h/w — gavda bbox'i tom-yotgan bo'lmasligi (faqat bosh ko'ringan emas)
 
 
 def detect_and_classify(pil_image: Image.Image, confidence: float) -> dict:
-    """To'liq kadrdan yuzlarni topib, har birini classify qilish."""
-    if face_detector is None:
+    """Kadrdagi har bir odamni topib, holatini classify qilish."""
+    if person_detector is None:
         return {"detections": [], "summary": make_summary([])}
 
     img_array = np.array(pil_image)
     h, w = img_array.shape[:2]
+    frame_area = h * w
 
-    # YuNet RGB emas, BGR kutadi
-    bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-    face_detector.setInputSize((w, h))
-    _, faces = face_detector.detect(bgr)
+    # YOLOv8 — faqat "person" classni filtrlash
+    results = person_detector.predict(
+        img_array,
+        conf=MIN_PERSON_CONF,
+        classes=[PERSON_CLASS_ID],
+        verbose=False,
+    )
+    result = results[0]
 
-    if faces is None or len(faces) == 0:
+    if len(result.boxes) == 0:
         return {"detections": [], "summary": make_summary([])}
 
     detections = []
-    for face in faces:
-        # YuNet format: [x, y, w, h, ..., score]
-        fx1, fy1, fw, fh = int(face[0]), int(face[1]), int(face[2]), int(face[3])
+    for box in result.boxes:
+        x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
+        person_w = x2 - x1
+        person_h = y2 - y1
 
-        # Asimmetrik padding — tanani ham olish uchun
-        cx1 = max(0, fx1 - int(fw * PAD_LEFT))
-        cy1 = max(0, fy1 - int(fh * PAD_TOP))
-        cx2 = min(w, fx1 + fw + int(fw * PAD_RIGHT))
-        cy2 = min(h, fy1 + fh + int(fh * PAD_BOTTOM))
+        # Filter: juda kichik bbox'lar (false positive)
+        if (person_w * person_h) < frame_area * MIN_PERSON_AREA_RATIO:
+            continue
+
+        # Filter: faqat bosh ko'ringan (gavda kadrdan tashqarida) — aspect kichik bo'ladi
+        if person_h / max(person_w, 1) < MIN_PERSON_ASPECT:
+            continue
+
+        # Kontekst uchun kichik padding (bbox tightligi tufayli yelka kesib qolmasin)
+        pad_x = int(person_w * PERSON_PAD_RATIO)
+        pad_y = int(person_h * PERSON_PAD_RATIO)
+        cx1 = max(0, x1 - pad_x)
+        cy1 = max(0, y1 - pad_y)
+        cx2 = min(w, x2 + pad_x)
+        cy2 = min(h, y2 + pad_y)
 
         crop = pil_image.crop((cx1, cy1, cx2, cy2))
 

@@ -47,7 +47,7 @@ export default function ModelPanel() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs font-semibold text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs font-semibold text-zinc-600 hover:text-zinc-900 transition-all cursor-pointer"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -59,9 +59,9 @@ export default function ModelPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-[#0a0a14]/95 backdrop-blur-xl shadow-2xl z-[100] overflow-hidden">
-          <div className="px-3 py-2 border-b border-white/10">
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Model tanlang</span>
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-zinc-200 bg-white/95 backdrop-blur-xl shadow-2xl z-[100] overflow-hidden">
+          <div className="px-3 py-2 border-b border-zinc-200">
+            <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">Model tanlang</span>
           </div>
           <div className="p-1.5 flex flex-col gap-1">
             {data.models.map((m) => {
@@ -74,10 +74,10 @@ export default function ModelPanel() {
                   disabled={!!switching || isActive || !isAuthenticated}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                     ${isActive
-                      ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 cursor-default"
+                      ? "bg-indigo-500/15 text-indigo-700 border border-indigo-500/30 cursor-default"
                       : isAuthenticated
-                        ? "text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer"
-                        : "text-zinc-500 cursor-not-allowed"
+                        ? "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 cursor-pointer"
+                        : "text-zinc-400 cursor-not-allowed"
                     }
                     ${isLoading ? "opacity-50" : ""}
                     ${!!switching && !isActive ? "disabled:opacity-40 disabled:cursor-wait" : ""}
@@ -86,14 +86,14 @@ export default function ModelPanel() {
                   <div className="flex items-center justify-between">
                     <span>{m.version}</span>
                     {isActive && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300">Faol</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-700">Faol</span>
                     )}
                     {isLoading && (
-                      <span className="text-[9px] text-zinc-400">Yuklanmoqda...</span>
+                      <span className="text-[9px] text-zinc-500">Yuklanmoqda...</span>
                     )}
                   </div>
                   {(m.task || m.activation) && (
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
+                    <p className="text-[10px] text-zinc-600 mt-0.5">
                       {[m.task, m.activation].filter(Boolean).join(" • ")}
                       {m.accuracy != null && (
                         <span className="ml-1 text-zinc-500">

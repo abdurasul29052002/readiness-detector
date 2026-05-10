@@ -25,7 +25,6 @@ export default function VideoPage() {
     if (isAuthenticated) getVideoJobs().then(setJobs).catch(() => {});
   }, [isAuthenticated]);
 
-  // Poll for processing jobs
   useEffect(() => {
     const hasProcessing = jobs.some((j) => j.status === "PENDING" || j.status === "PROCESSING");
     if (hasProcessing) {
@@ -72,8 +71,8 @@ export default function VideoPage() {
       <div className="glass rounded-2xl p-6 mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Video fayl</label>
-            <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer">
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Video fayl</label>
+            <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer text-zinc-700">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
               </svg>
@@ -82,46 +81,46 @@ export default function VideoPage() {
             </label>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Kadr oralig&apos;i</label>
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Kadr oralig&apos;i</label>
             <select value={frameInterval} onChange={(e) => setFrameInterval(Number(e.target.value))}
-              className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all">
-              <option value={15} className="bg-zinc-900">Har 15 kadr</option>
-              <option value={30} className="bg-zinc-900">Har 30 kadr (~1/sek)</option>
-              <option value={60} className="bg-zinc-900">Har 60 kadr (~2/sek)</option>
+              className="px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+              <option value={15}>Har 15 kadr</option>
+              <option value={30}>Har 30 kadr (~1/sek)</option>
+              <option value={60}>Har 60 kadr (~2/sek)</option>
             </select>
           </div>
           <div className="flex items-center gap-3 px-4 py-2 rounded-xl glass">
             <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Ishonch</span>
             <input type="range" min={0.1} max={0.9} step={0.05} value={confidence}
               onChange={(e) => setConfidence(parseFloat(e.target.value))}
-              className="w-20 h-1 rounded-full bg-white/10 appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:cursor-pointer" />
-            <span className="text-sm font-bold text-indigo-400">{(confidence * 100).toFixed(0)}%</span>
+              className="w-20 h-1 rounded-full bg-zinc-200 appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:cursor-pointer" />
+            <span className="text-sm font-bold text-indigo-600">{(confidence * 100).toFixed(0)}%</span>
           </div>
         </div>
-        {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
+        {error && <p className="mt-3 text-red-600 text-sm">{error}</p>}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6">
         {/* Jobs List */}
         <div className="glass rounded-2xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/5">
-            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Ishlar tarixi</span>
+          <div className="px-5 py-3 border-b border-zinc-200">
+            <span className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Ishlar tarixi</span>
           </div>
           {jobs.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-zinc-400">Hali video yuklanmagan</p>
+            <p className="px-5 py-8 text-center text-sm text-zinc-500">Hali video yuklanmagan</p>
           ) : (
             jobs.map((job) => (
               <div key={job.id} onClick={() => job.status === "COMPLETED" && handleViewDetail(job.id)}
-                className="px-5 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer">
+                className="px-5 py-3 border-b border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">{job.original_filename}</p>
+                    <p className="text-sm font-medium text-zinc-900">{job.original_filename}</p>
                     <p className="text-[10px] text-zinc-500">{new Date(job.created_at).toLocaleString("uz")}</p>
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${
-                    job.status === "COMPLETED" ? "bg-emerald-500/20 text-emerald-400" :
-                    job.status === "FAILED" ? "bg-red-500/20 text-red-400" :
-                    "bg-amber-500/20 text-amber-400"
+                    job.status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-700" :
+                    job.status === "FAILED" ? "bg-red-500/15 text-red-700" :
+                    "bg-amber-500/15 text-amber-700"
                   }`}>
                     {job.status === "COMPLETED" ? "Tayyor" : job.status === "FAILED" ? "Xato" :
                      job.status === "PROCESSING" ? "Jarayonda..." : "Kutilmoqda"}
@@ -129,8 +128,8 @@ export default function VideoPage() {
                 </div>
                 {job.status === "COMPLETED" && (
                   <div className="flex gap-4 mt-1 text-[10px] text-zinc-500">
-                    <span>Diqqatli: <span className="text-emerald-400">{job.overall_attentive_percent.toFixed(1)}%</span></span>
-                    <span>Chalg&apos;igan: <span className="text-red-400">{job.overall_distracted_percent.toFixed(1)}%</span></span>
+                    <span>Diqqatli: <span className="text-emerald-600">{job.overall_attentive_percent.toFixed(1)}%</span></span>
+                    <span>Chalg&apos;igan: <span className="text-red-600">{job.overall_distracted_percent.toFixed(1)}%</span></span>
                   </div>
                 )}
               </div>
@@ -141,14 +140,14 @@ export default function VideoPage() {
         {/* Timeline Chart */}
         {selectedJob && results.length > 0 && (
           <div className="glass rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-zinc-400 mb-2">{selectedJob.job.original_filename} — Vaqt bo&apos;yicha tahlil</h3>
+            <h3 className="text-sm font-semibold text-zinc-700 mb-2">{selectedJob.job.original_filename} — Vaqt bo&apos;yicha tahlil</h3>
             <div className="overflow-x-auto">
               <svg viewBox={`0 0 ${Math.max(results.length * 8, 400)} 200`} className="w-full min-w-[400px]" preserveAspectRatio="xMinYMid meet">
                 {/* Grid */}
                 {[0, 25, 50, 75, 100].map((v) => (
                   <g key={v}>
-                    <text x="25" y={180 - v * 1.6 + 4} fill="#52525b" fontSize="9" textAnchor="end">{v}%</text>
-                    <line x1="30" y1={180 - v * 1.6} x2={results.length * 8 + 35} y2={180 - v * 1.6} stroke="#27272a" strokeWidth="0.3" />
+                    <text x="25" y={180 - v * 1.6 + 4} fill="#71717a" fontSize="9" textAnchor="end">{v}%</text>
+                    <line x1="30" y1={180 - v * 1.6} x2={results.length * 8 + 35} y2={180 - v * 1.6} stroke="#e4e4e7" strokeWidth="0.3" />
                   </g>
                 ))}
                 {/* Lines */}
@@ -160,7 +159,7 @@ export default function VideoPage() {
                   fill="none" stroke="#ef4444" strokeWidth="1.5" />
               </svg>
             </div>
-            <div className="flex gap-4 mt-2 text-xs text-zinc-500">
+            <div className="flex gap-4 mt-2 text-xs text-zinc-600">
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-emerald-500" /> Diqqatli</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-red-500" /> Chalg&apos;igan</span>
             </div>

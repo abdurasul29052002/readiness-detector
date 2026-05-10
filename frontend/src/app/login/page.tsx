@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[70vh]">
       <div className="glass rounded-2xl p-8 w-full max-w-md" style={{ animation: "fade-in-up 0.5s ease" }}>
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl mb-4 glow-indigo">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl mb-4 glow-indigo">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
               <polyline points="10 17 15 12 10 7" />
@@ -38,40 +38,40 @@ export default function LoginPage() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gradient">Tizimga kirish</h2>
-          <p className="text-sm text-zinc-400 mt-1">Foydalanuvchi ma&apos;lumotlarini kiriting</p>
+          <p className="text-sm text-zinc-600 mt-1">Foydalanuvchi ma&apos;lumotlarini kiriting</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">
               Foydalanuvchi nomi
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
               placeholder="admin"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">
               Parol
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
               placeholder="••••••"
               required
             />
           </div>
 
           {error && (
-            <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
               {error}
             </div>
           )}

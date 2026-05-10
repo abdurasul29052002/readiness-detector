@@ -50,7 +50,6 @@ export default function StatisticsDashboard() {
   if (!isAuthenticated) return null;
 
   const breakdown = data?.daily_breakdown || [];
-  const maxSessions = Math.max(...breakdown.map((d) => d.session_count), 1);
 
   return (
     <div style={{ animation: "fade-in-up 0.5s ease" }}>
@@ -61,7 +60,7 @@ export default function StatisticsDashboard() {
         {([["daily", "Kunlik"], ["weekly", "Haftalik"], ["range", "Oraliq"]] as const).map(([m, label]) => (
           <button key={m} onClick={() => setMode(m)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              mode === m ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "glass text-zinc-400 hover:text-zinc-300"
+              mode === m ? "bg-indigo-500/15 text-indigo-700 border border-indigo-500/30" : "glass text-zinc-600 hover:text-zinc-900"
             }`}>
             {label}
           </button>
@@ -72,29 +71,29 @@ export default function StatisticsDashboard() {
       <div className="flex gap-4 items-end mb-6 flex-wrap">
         {mode === "daily" && (
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Sana</label>
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Sana</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
+              className="px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all" />
           </div>
         )}
         {mode === "weekly" && (
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Hafta boshlanishi</label>
+            <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Hafta boshlanishi</label>
             <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
-              className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
+              className="px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all" />
           </div>
         )}
         {mode === "range" && (
           <>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Boshlanish</label>
+              <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Boshlanish</label>
               <input type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)}
-                className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
+                className="px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Tugash</label>
+              <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Tugash</label>
               <input type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)}
-                className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all" />
+                className="px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all" />
             </div>
           </>
         )}
@@ -105,7 +104,7 @@ export default function StatisticsDashboard() {
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
+        <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
       )}
 
       {data && (
@@ -113,34 +112,34 @@ export default function StatisticsDashboard() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Sessiyalar</p>
-              <p className="text-2xl font-bold">{data.total_sessions}</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-widest mb-1">Sessiyalar</p>
+              <p className="text-2xl font-bold text-zinc-900">{data.total_sessions}</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Diqqatli</p>
-              <p className="text-2xl font-bold text-emerald-400">{data.overall_avg_attentive.toFixed(1)}%</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-widest mb-1">Diqqatli</p>
+              <p className="text-2xl font-bold text-emerald-600">{data.overall_avg_attentive.toFixed(1)}%</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Chalg&apos;igan</p>
-              <p className="text-2xl font-bold text-red-400">{data.overall_avg_distracted.toFixed(1)}%</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-widest mb-1">Chalg&apos;igan</p>
+              <p className="text-2xl font-bold text-red-600">{data.overall_avg_distracted.toFixed(1)}%</p>
             </div>
             <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-400 uppercase tracking-widest mb-1">Davr</p>
-              <p className="text-sm font-semibold text-zinc-400">{data.period_start} — {data.period_end}</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-widest mb-1">Davr</p>
+              <p className="text-sm font-semibold text-zinc-700">{data.period_start} — {data.period_end}</p>
             </div>
           </div>
 
           {/* SVG Bar Chart */}
           {breakdown.length > 0 && (
             <div className="glass rounded-2xl p-5 mb-6">
-              <h3 className="text-sm font-semibold text-zinc-400 mb-4">Kunlik taqsimot</h3>
+              <h3 className="text-sm font-semibold text-zinc-700 mb-4">Kunlik taqsimot</h3>
               <div className="overflow-x-auto">
                 <svg viewBox={`0 0 ${Math.max(breakdown.length * 80, 400)} 220`} className="w-full min-w-[400px]" preserveAspectRatio="xMinYMid meet">
                   {/* Y-axis labels */}
                   {[0, 25, 50, 75, 100].map((v) => (
                     <g key={v}>
-                      <text x="30" y={200 - v * 1.8 + 4} fill="#52525b" fontSize="10" textAnchor="end">{v}%</text>
-                      <line x1="35" y1={200 - v * 1.8} x2={breakdown.length * 80 + 40} y2={200 - v * 1.8} stroke="#27272a" strokeWidth="0.5" />
+                      <text x="30" y={200 - v * 1.8 + 4} fill="#71717a" fontSize="10" textAnchor="end">{v}%</text>
+                      <line x1="35" y1={200 - v * 1.8} x2={breakdown.length * 80 + 40} y2={200 - v * 1.8} stroke="#e4e4e7" strokeWidth="0.5" />
                     </g>
                   ))}
                   {/* Bars */}
@@ -150,12 +149,12 @@ export default function StatisticsDashboard() {
                     const distH = d.avg_distracted_percent * 1.8;
                     return (
                       <g key={d.date}>
-                        <rect x={x} y={200 - attH} width="25" height={attH} rx="3" fill="#10b981" opacity="0.8" />
-                        <rect x={x + 30} y={200 - distH} width="25" height={distH} rx="3" fill="#ef4444" opacity="0.8" />
-                        <text x={x + 27} y="215" fill="#71717a" fontSize="9" textAnchor="middle">
+                        <rect x={x} y={200 - attH} width="25" height={attH} rx="3" fill="#10b981" opacity="0.85" />
+                        <rect x={x + 30} y={200 - distH} width="25" height={distH} rx="3" fill="#ef4444" opacity="0.85" />
+                        <text x={x + 27} y="215" fill="#52525b" fontSize="9" textAnchor="middle">
                           {d.date.slice(5)}
                         </text>
-                        <text x={x + 27} y="212" fill="#52525b" fontSize="8" textAnchor="middle" dy="15">
+                        <text x={x + 27} y="212" fill="#71717a" fontSize="8" textAnchor="middle" dy="15">
                           ({d.session_count})
                         </text>
                       </g>
@@ -163,23 +162,23 @@ export default function StatisticsDashboard() {
                   })}
                 </svg>
               </div>
-              <div className="flex gap-4 mt-3 text-xs text-zinc-400">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500/80" /> Diqqatli</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500/80" /> Chalg&apos;igan</span>
+              <div className="flex gap-4 mt-3 text-xs text-zinc-600">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500" /> Diqqatli</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500" /> Chalg&apos;igan</span>
               </div>
             </div>
           )}
 
           {/* Export Buttons */}
           <div className="glass rounded-2xl p-5 mb-6">
-            <h3 className="text-sm font-semibold text-zinc-400 mb-3">Eksport</h3>
+            <h3 className="text-sm font-semibold text-zinc-700 mb-3">Eksport</h3>
             <div className="flex gap-3 flex-wrap">
               <button onClick={async () => { const blob = await exportCsv(data.period_start, data.period_end); downloadBlob(blob, `statistika_${data.period_start}_${data.period_end}.csv`); }}
-                className="px-4 py-2 rounded-xl glass glass-hover text-sm font-semibold text-emerald-400 cursor-pointer transition-all">
+                className="px-4 py-2 rounded-xl glass glass-hover text-sm font-semibold text-emerald-700 cursor-pointer transition-all">
                 CSV yuklash
               </button>
               <button onClick={async () => { const blob = await exportPdf(data.period_start, data.period_end); downloadBlob(blob, `hisobot_${data.period_start}_${data.period_end}.pdf`); }}
-                className="px-4 py-2 rounded-xl glass glass-hover text-sm font-semibold text-indigo-400 cursor-pointer transition-all">
+                className="px-4 py-2 rounded-xl glass glass-hover text-sm font-semibold text-indigo-700 cursor-pointer transition-all">
                 PDF hisobot
               </button>
             </div>
@@ -190,20 +189,20 @@ export default function StatisticsDashboard() {
             <div className="glass rounded-2xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sana</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sessiyalar</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Diqqatli</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-widest">Chalg&apos;igan</th>
+                  <tr className="border-b border-zinc-200">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-600 uppercase tracking-widest">Sana</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-600 uppercase tracking-widest">Sessiyalar</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-600 uppercase tracking-widest">Diqqatli</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-600 uppercase tracking-widest">Chalg&apos;igan</th>
                   </tr>
                 </thead>
                 <tbody>
                   {breakdown.map((d) => (
-                    <tr key={d.date} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-3 font-medium">{d.date}</td>
-                      <td className="px-5 py-3 text-right text-zinc-400">{d.session_count}</td>
-                      <td className="px-5 py-3 text-right text-emerald-400">{d.avg_attentive_percent.toFixed(1)}%</td>
-                      <td className="px-5 py-3 text-right text-red-400">{d.avg_distracted_percent.toFixed(1)}%</td>
+                    <tr key={d.date} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-3 font-medium text-zinc-800">{d.date}</td>
+                      <td className="px-5 py-3 text-right text-zinc-600">{d.session_count}</td>
+                      <td className="px-5 py-3 text-right text-emerald-600">{d.avg_attentive_percent.toFixed(1)}%</td>
+                      <td className="px-5 py-3 text-right text-red-600">{d.avg_distracted_percent.toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>

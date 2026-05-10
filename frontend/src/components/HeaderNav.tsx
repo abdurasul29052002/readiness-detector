@@ -31,8 +31,8 @@ export default function HeaderNav() {
               href={item.href}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 active
-                  ? "bg-white/10 text-white"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                  ? "bg-zinc-200 text-zinc-900"
+                  : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
               }`}
             >
               {item.label}
@@ -41,8 +41,8 @@ export default function HeaderNav() {
         })}
       </nav>
 
-      <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-xs font-semibold text-zinc-400">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-xs font-semibold text-zinc-600">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         AI Server
       </div>
 
@@ -51,17 +51,17 @@ export default function HeaderNav() {
 
       {isAuthenticated ? (
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-full glass text-xs font-semibold text-zinc-400">
+          <span className="px-3 py-1.5 rounded-full glass text-xs font-semibold text-zinc-600">
             {user?.full_name}
             <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] ${
-              isAdmin ? "bg-indigo-500/20 text-indigo-400" : "bg-emerald-500/20 text-emerald-400"
+              isAdmin ? "bg-indigo-500/15 text-indigo-700" : "bg-emerald-500/15 text-emerald-700"
             }`}>
               {user?.role}
             </span>
           </span>
           <button
             onClick={logout}
-            className="px-3 py-1.5 rounded-full glass text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-full glass text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-500/10 transition-all cursor-pointer"
           >
             Chiqish
           </button>

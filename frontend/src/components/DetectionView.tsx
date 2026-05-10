@@ -30,7 +30,6 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
   const [detecting, setDetecting] = useState(false);
   const [faceCount, setFaceCount] = useState(0);
 
-  // Serverdan kelgan bbox larni canvas ga chizish
   const drawDetections = useCallback(
     (detections: DetectionResult[], width: number, height: number) => {
       const canvas = canvasRef.current;
@@ -48,11 +47,9 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
         const w = x2 - x1;
         const h = y2 - y1;
 
-        // Glow
         ctx.shadowColor = color;
         ctx.shadowBlur = 8;
 
-        // Box
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -61,7 +58,6 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
 
         ctx.shadowBlur = 0;
 
-        // Label
         const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
         ctx.font = "600 12px Inter, sans-serif";
         const textW = ctx.measureText(label).width + 12;
@@ -80,12 +76,10 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
     []
   );
 
-  // Kadrni serverga yuborib natija olish
   const captureAndDetect = useCallback(async () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
 
-    // Video kadrni JPEG ga aylantirish
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -107,7 +101,6 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
     }
   }, [confidence, drawDetections]);
 
-  // Rasm yuklash — to'liq rasmni serverga yuborish
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -202,7 +195,7 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
             </button>
           )}
 
-          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer transition-all text-zinc-300">
+          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-semibold cursor-pointer transition-all text-zinc-700">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
@@ -212,7 +205,7 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
 
           {/* Face count badge */}
           {isRunning && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-xs font-semibold text-zinc-400">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-xs font-semibold text-zinc-600">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/>
               </svg>
@@ -225,15 +218,15 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
             <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Ishonch</span>
             <input type="range" min={0.1} max={0.9} step={0.05}
               value={confidence} onChange={e => setConfidence(parseFloat(e.target.value))}
-              className="w-24 h-1 rounded-full bg-white/10 appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(99,102,241,0.5)] [&::-webkit-slider-thumb]:cursor-pointer" />
-            <span className="text-sm font-bold text-indigo-400 min-w-[36px] text-right">
+              className="w-24 h-1 rounded-full bg-zinc-200 appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(99,102,241,0.5)] [&::-webkit-slider-thumb]:cursor-pointer" />
+            <span className="text-sm font-bold text-indigo-600 min-w-[36px] text-right">
               {(confidence * 100).toFixed(0)}%
             </span>
           </div>
         </div>
 
         {/* Video area */}
-        <div className="relative rounded-xl overflow-hidden bg-black aspect-video border border-white/5">
+        <div className="relative rounded-xl overflow-hidden bg-zinc-900 aspect-video border border-zinc-200">
           {isRunning && (
             <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/90 backdrop-blur-sm text-[10px] font-bold text-white tracking-widest uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-white" style={{ animation: "pulse-live 1.5s infinite" }} />
@@ -242,7 +235,7 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
           )}
 
           {detecting && (
-            <div className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-[10px] font-semibold text-zinc-400 flex items-center gap-2">
+            <div className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-[10px] font-semibold text-white flex items-center gap-2">
               <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
               </svg>
@@ -264,20 +257,20 @@ export default function DetectionView({ cameraId, compact }: DetectionViewProps 
 
           {!isRunning && !uploadedSrc && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500">
+              <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-400">
                   <path d="m15 10-4 4V6l-4 4" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="12" r="10"/>
                 </svg>
               </div>
-              <p className="text-sm font-medium text-zinc-400">Kamerani yoqing yoki rasm yuklang</p>
-              <p className="text-xs text-zinc-500 mt-1">Real-time o&#39;quvchi xatti-harakatini aniqlash</p>
+              <p className="text-sm font-medium text-zinc-300">Kamerani yoqing yoki rasm yuklang</p>
+              <p className="text-xs text-zinc-400 mt-1">Real-time o&#39;quvchi xatti-harakatini aniqlash</p>
             </div>
           )}
         </div>
 
         {error && (
-          <div className="mt-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium flex items-center gap-2"
+          <div className="mt-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-sm font-medium flex items-center gap-2"
             style={{ animation: "fade-in-up 0.3s ease" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>

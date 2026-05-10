@@ -62,15 +62,15 @@ export default function CamerasPage() {
         <div className="glass rounded-2xl p-6 mb-6">
           <form onSubmit={handleCreate} className="flex gap-4 items-end flex-wrap">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Nomi</label>
+              <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Nomi</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all"
                 placeholder="Sinf xonasi 101" />
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Tavsif</label>
+              <label className="block text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-2">Tavsif</label>
               <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-zinc-300 text-zinc-900 text-sm focus:outline-none focus:border-indigo-500 transition-all"
                 placeholder="1-qavat, asosiy bino" />
             </div>
             <button type="submit" className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-all cursor-pointer">
@@ -84,23 +84,23 @@ export default function CamerasPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {cameras.map((cam) => (
           <div key={cam.id} className={`glass rounded-xl p-4 border transition-all cursor-pointer ${
-            selectedCamera === cam.id ? "border-indigo-500/50 glow-indigo" : "border-transparent hover:border-white/10"
+            selectedCamera === cam.id ? "border-indigo-500/50 glow-indigo" : "border-transparent hover:border-zinc-300"
           }`} onClick={() => setSelectedCamera(cam.id === selectedCamera ? null : cam.id)}>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm">{cam.name}</h3>
-              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-400" : "text-red-400"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${cam.active ? "bg-emerald-400" : "bg-red-400"}`} />
+              <h3 className="font-semibold text-sm text-zinc-900">{cam.name}</h3>
+              <span className={`inline-flex items-center gap-1.5 text-xs ${cam.active ? "text-emerald-600" : "text-red-600"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${cam.active ? "bg-emerald-500" : "bg-red-500"}`} />
                 {cam.active ? "Faol" : "Nofaol"}
               </span>
             </div>
-            {cam.description && <p className="text-xs text-zinc-400 mb-3">{cam.description}</p>}
+            {cam.description && <p className="text-xs text-zinc-600 mb-3">{cam.description}</p>}
             <div className="flex gap-2">
               <button onClick={(e) => { e.stopPropagation(); handleToggle(cam.id); }}
-                className="text-xs px-3 py-1 rounded-lg glass hover:bg-white/5 transition-all cursor-pointer">
+                className="text-xs px-3 py-1 rounded-lg glass hover:bg-zinc-100 text-zinc-700 transition-all cursor-pointer">
                 {cam.active ? "O'chirish" : "Yoqish"}
               </button>
               <button onClick={(e) => { e.stopPropagation(); handleDelete(cam.id); }}
-                className="text-xs px-3 py-1 rounded-lg text-red-400 hover:bg-red-500/10 transition-all cursor-pointer">
+                className="text-xs px-3 py-1 rounded-lg text-red-600 hover:bg-red-50 transition-all cursor-pointer">
                 O&apos;chirish
               </button>
             </div>
@@ -112,9 +112,9 @@ export default function CamerasPage() {
       {activeCameras.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">Jonli kuzatuv</h3>
+            <h3 className="text-lg font-bold text-zinc-900">Jonli kuzatuv</h3>
             {activeCameras.length > 1 && (
-              <p className="text-xs text-zinc-400">Yuqoridagi kartadan kamera tanlang</p>
+              <p className="text-xs text-zinc-600">Yuqoridagi kartadan kamera tanlang</p>
             )}
           </div>
 
@@ -123,8 +123,8 @@ export default function CamerasPage() {
             return (
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-semibold">{liveCam.name}</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold text-zinc-800">{liveCam.name}</span>
                 </div>
                 <DetectionView key={liveCam.id} cameraId={liveCam.id} compact />
               </div>
